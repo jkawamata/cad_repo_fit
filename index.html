@@ -146,7 +146,7 @@ const setBeforePerspectiveFit=set;set=s=>{setBeforePerspectiveFit(s);if(s==='rep
 const setGBeforePerspectiveFit=setG;setG=(geometry,name)=>{delete app.dataset.isoAutoFit;setGBeforePerspectiveFit(geometry,name)};
 </script>
 <script>
-function tightenDefaultViews(){if(app.dataset.viewTight)return;zooms[0]=Math.min(8,zooms[0]*1.06);zooms[2]=zooms[0];zooms[1]=Math.min(8,zooms[1]*1.10);app.dataset.viewTight='1';if($('orthoZoom'))$('orthoZoom').value=zooms[0];if($('isoZoom'))$('isoZoom').value=zooms[1];views()}
+function tightenDefaultViews(){if(app.dataset.viewTight)return;zooms[0]=Math.min(8,zooms[0]*.90);zooms[2]=zooms[0];zooms[1]=Math.min(8,zooms[1]*.96);app.dataset.viewTight='1';if($('orthoZoom'))$('orthoZoom').value=zooms[0];if($('isoZoom'))$('isoZoom').value=zooms[1];views()}
 const setBeforeTightViews=set;set=s=>{setBeforeTightViews(s);if(s==='report')setTimeout(tightenDefaultViews,220)};
 const setGBeforeTightViews=setG;setG=(geometry,name)=>{delete app.dataset.viewTight;setGBeforeTightViews(geometry,name)};
 </script>
@@ -252,7 +252,7 @@ const appTitle=document.querySelector('.title h1');
 if(appTitle){
   const version=appTitle.querySelector('.version');
   appTitle.firstChild.nodeValue='CADレポFIT';
-  if(version)version.textContent='v1.01';
+  if(version)version.textContent='v1.02';
 }
 </script>
 <script>
