@@ -1,0 +1,717 @@
+<!doctype html><html lang="ja"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>CAD課題FIT</title><script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script><script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/STLLoader.js"></script><script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script><style>
+:root{--ink:#172033;--line:#d9deea;--blue:#2563eb}*{box-sizing:border-box}html,body,#app{margin:0;width:100%;height:100%;overflow:hidden;font-family:system-ui,"Yu Gothic",sans-serif;color:var(--ink)}#app{position:relative;background:linear-gradient(#eef2f7,#dfe6f2)}#main{position:absolute;inset:0;width:100%;height:100%}.title{position:absolute;left:50%;top:15px;transform:translateX(-50%);z-index:3;text-align:center;pointer-events:none}.title h1{margin:0;font-size:26px;letter-spacing:.06em;font-weight:500;color:#334155;text-shadow:0 1px #fff}.title p{margin:3px 0;font-size:12px;color:#64748b}.circle{position:absolute;left:48%;top:50%;width:min(45vw,430px);height:min(45vw,430px);transform:translate(-50%,-50%);border:2px solid #94a3b8;border-radius:50%;box-shadow:inset 0 0 28px #fff}.guide{position:absolute;left:48%;top:50%;transform:translate(-50%,-50%);font-size:14px;font-weight:700;color:#475569;white-space:nowrap}.loaded .circle,.loaded .guide{display:none}.name{position:absolute;left:16px;bottom:15px;padding:8px 11px;background:#ffffffdb;border:1px solid var(--line);border-radius:10px;color:#475569;font-size:12px}.flow{position:absolute;right:16px;top:14px;bottom:18px;width:228px;display:flex;flex-direction:column;gap:21px}.step{position:relative;display:flex;align-items:center;gap:8px;padding:10px 9px;text-align:left;border:1px solid #d5deeb;border-radius:13px;background:#ffffffed;color:#334155;font-weight:700;font-size:13px;box-shadow:0 5px 18px #3341551c;cursor:pointer}.step:not(.save):after{content:'↓';position:absolute;left:11px;bottom:-23px;color:#94a3b8;font-size:19px}.step.active{background:#eff6ff;border-color:var(--blue);color:#1d4ed8}.step.active:before{content:'';position:absolute;left:-25px;top:50%;transform:translateY(-50%);height:14px;width:14px;border-radius:50%;background:#dc2626;box-shadow:0 0 12px #dc262699}.n{width:27px;height:27px;display:grid;place-items:center;border-radius:50%;background:#64748b;color:#fff;font-size:12px}.done .n{background:#15803d}.step small{display:block;color:#64748b;font-size:10px;font-weight:400;margin-top:2px}.save{margin-top:auto;background:#1d4ed8;color:#fff;justify-content:center}.save:disabled{opacity:.45}.drawer{display:none;position:absolute;z-index:5;right:260px;top:104px;width:min(430px,calc(100vw - 290px));max-height:calc(100vh - 135px);overflow:auto;padding:18px;border:1px solid #d5deeb;border-radius:18px;background:#fffffff5;box-shadow:0 18px 45px #3341552a}.drawer.show{display:block}.drawer h2{font-size:18px;margin:0 0 10px}.field{display:grid;gap:5px;margin:12px 0;color:#475569;font-size:12px;font-weight:700}.field input,.field textarea{font:inherit;font-weight:400;border:1px solid var(--line);border-radius:9px;padding:9px}.field textarea{height:76px;resize:vertical}.btn{border:0;border-radius:10px;padding:9px 12px;background:var(--blue);color:#fff;font-weight:700;cursor:pointer}.next{float:right}.report{padding:9px;border:1px solid var(--line);border-radius:11px;background:#f8fbff;font-size:12px}.report h3{text-align:center;font-family:serif;font-size:16px;margin:0 0 7px}.views{display:grid;grid-template-columns:repeat(3,1fr);gap:5px}.view{padding:3px;border:1px solid var(--line);border-radius:7px;background:#fff}.view canvas{display:block;width:100%;aspect-ratio:1}.view input{width:100%;padding:0;accent-color:var(--blue)}.status{clear:both;margin-top:14px;text-align:center;color:#64748b;font-size:12px}@media(max-width:680px){.flow{right:8px;width:185px}.drawer{right:201px;width:calc(100vw - 216px);min-width:250px}.step small{display:none}.circle{left:40%;width:280px;height:280px}.guide{left:40%;font-size:12px;white-space:normal;width:240px;text-align:center}.title{left:12px;transform:none}.title p{display:none}}
+</style><div id="app"><canvas id="main"></canvas><div class="circle"></div><div class="guide">作成したSTLファイルまたは3MFファイルを、画面上にドラッグ＆ドロップしてください。</div><div class="title"><h1>CAD課題FIT</h1><p>3Dモデルとレポートを、提出用3MFにまとめる</p></div><div id="name" class="name">モデルを読み込んでください</div><nav class="flow"><label class="step active" data-s="model"><span class="n">1</span><span>モデルを読み込む<small>STL または 3MF</small></span><input id="open" type="file" accept=".stl,.3mf"></label><button class="step" data-s="person"><span class="n">2</span><span>提出者を入力<small>クラス番号・氏名</small></span></button><button class="step" data-s="report"><span class="n">3</span><span>レポートを作成<small>3方向と文章を設定</small></span></button><button class="step" data-s="confirm"><span class="n">4</span><span>提出内容を確認<small>保存前の最終確認</small></span></button><button id="save" class="step save" disabled>提出用3MFを保存</button></nav><aside id="drawer" class="drawer"></aside></div><script>
+const $=x=>document.getElementById(x),app=$('app'),drawer=$('drawer'),info={classNo:'',name:'',reference:'',reflection:''};let g,mesh,base='CAD課題FIT',active='model',zooms=[1,1,1];const sc=new THREE.Scene(),r=new THREE.WebGLRenderer({canvas:$('main'),antialias:true,alpha:true}),cam=new THREE.PerspectiveCamera(35,1,.1,1000),mat=new THREE.MeshStandardMaterial({color:0x60a5fa,roughness:.35});sc.add(new THREE.HemisphereLight(0xffffff,0x71839d,2.8));let light=new THREE.DirectionalLight(0xffffff,3);light.position.set(4,6,5);sc.add(light);cam.position.set(5,-6,4);cam.up.set(0,0,1);cam.lookAt(0,0,0);function resize(){r.setSize(innerWidth,innerHeight);cam.aspect=innerWidth/innerHeight;cam.updateProjectionMatrix();r.render(sc,cam)}addEventListener('resize',resize);
+function setG(x,n){if(mesh)sc.remove(mesh);g=x;g.computeVertexNormals();g.computeBoundingBox();let c=g.boundingBox.getCenter(new THREE.Vector3()),s=g.boundingBox.getSize(new THREE.Vector3()).length();g.translate(-c.x,-c.y,-c.z);g.scale(3.4/s,3.4/s,3.4/s);mesh=new THREE.Mesh(g,mat);sc.add(mesh);base=n.replace(/\.[^.]+$/,'');app.classList.add('loaded');$('name').textContent='読み込み済み：'+n;flow();set('person');resize()}function good(){return g&&Object.values(info).every(x=>x.trim())}function flow(){for(let x of document.querySelectorAll('[data-s]'))x.classList.toggle('done',x.dataset.s==='model'?!!g:x.dataset.s==='person'?!!(info.classNo&&info.name):x.dataset.s==='report'?!!(info.reference&&info.reflection):false);$('save').disabled=!good()}
+function person(){return `<h2>提出者を入力</h2><label class=field>クラス番号<input id=classNo value="${info.classNo}"></label><label class=field>氏名<input id=personName value="${info.name}"></label><button class="btn next" onclick="set('report')">次へ</button><div class=status></div>`}function report(){return `<h2>CAD課題提出報告書</h2><div class=report><h3>CAD課題提出報告書</h3><div class=views>${['正面','斜め','上面'].map((x,i)=>`<div class=view><canvas id=v${i}></canvas><small>${x}</small><input class=zoom data-i=${i} type=range min=.55 max=2.2 step=.01 value=${zooms[i]}></div>`).join('')}</div></div><label class=field>参考にしたもの<textarea id=reference>${info.reference}</textarea></label><label class=field>気づいたこと・考えたこと<textarea id=reflection>${info.reflection}</textarea></label><button class="btn next" onclick="set('confirm')">次へ</button><div class=status></div>`}function confirm(){return `<h2>提出内容の確認</h2><div class=report>クラス番号：${info.classNo||'（未入力）'}<br>氏名：${info.name||'（未入力）'}<br><br>参考にしたもの：${info.reference||'（未入力）'}<br><br>気づいたこと・考えたこと：${info.reflection||'（未入力）'}</div><button class="btn next" onclick="make()" ${good()?'':'disabled'}>提出用3MFを保存</button><div class=status></div>`}function set(s){active=s;document.querySelectorAll('[data-s]').forEach(x=>x.classList.toggle('active',x.dataset.s===s));drawer.innerHTML=s==='person'?person():s==='report'?report():s==='confirm'?confirm():'';drawer.classList.toggle('show',s!=='model');if(s==='person'){classNo.oninput=e=>{info.classNo=e.target.value;flow()};personName.oninput=e=>{info.name=e.target.value;flow()}}if(s==='report'){['reference','reflection'].forEach(k=>$(k).oninput=e=>{info[k]=e.target.value;flow()});document.querySelectorAll('.zoom').forEach(x=>x.oninput=e=>{zooms[+e.target.dataset.i]=+e.target.value;views()});setTimeout(views)}}document.querySelectorAll('button[data-s]').forEach(x=>x.onclick=()=>set(x.dataset.s));
+function views(){if(active!=='report')return;for(let i=0;i<3;i++){let c=$('v'+i);c.width=c.height=180;if(!g)continue;let rr=new THREE.WebGLRenderer({canvas:c,antialias:true}),cc=new THREE.PerspectiveCamera(35,1,.1,100),p=[[0,-7,0],[6,-5,4],[0,0,7]][i];rr.setSize(180,180);cc.up.set(0,0,1);cc.position.set(...p).multiplyScalar(1/zooms[i]);cc.lookAt(0,0,0);rr.render(sc,cc);rr.dispose()}}
+function stamp(){let d=new Date(),p=x=>String(x).padStart(2,'0');return `${d.getFullYear()}${p(d.getMonth()+1)}${p(d.getDate())}_${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}`}function xml(){let a=g.attributes.position.array,v='',t='';for(let i=0;i<a.length;i+=3)v+=`<vertex x="${a[i]}" y="${a[i+1]}" z="${a[i+2]}"/>`;for(let i=0;i<a.length/3;i+=3)t+=`<triangle v1="${i}" v2="${i+1}" v3="${i+2}"/>`;return `<?xml version="1.0"?><model unit="millimeter" xmlns="http://schemas.microsoft.com/3dmanufacturing/core/2015/02"><resources><object id="1" type="model"><mesh><vertices>${v}</vertices><triangles>${t}</triangles></mesh></object></resources><build><item objectid="1"/></build></model>`}async function make(){if(!good())return;let z=new JSZip();z.file('[Content_Types].xml','<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="model" ContentType="application/vnd.ms-package.3dmanufacturing-3dmodel+xml"/><Default Extension="json" ContentType="application/json"/></Types>');z.file('_rels/.rels','<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Target="/3D/3dmodel.model" Id="r" Type="http://schemas.microsoft.com/3dmanufacturing/2013/01/3dmodel"/></Relationships>');z.file('3D/3dmodel.model',xml());z.file('Metadata/CAD課題FIT.json',JSON.stringify({...info,zooms}));let a=document.createElement('a');a.href=URL.createObjectURL(await z.generateAsync({type:'blob'}));a.download=`${info.classNo}_${info.name}_${stamp()}.3mf`;a.click()}async function read(f){if(!f)return;try{if(/\.stl$/i.test(f.name))setG(new THREE.STLLoader().parse(await f.arrayBuffer()),f.name);else{let z=await JSZip.loadAsync(f),d=new DOMParser().parseFromString(await z.file('3D/3dmodel.model').async('text'),'text/xml'),vs=[...d.getElementsByTagName('vertex')],a=[];for(let t of d.getElementsByTagName('triangle'))for(let k of ['v1','v2','v3']){let v=vs[+t.getAttribute(k)];a.push(+v.getAttribute('x'),+v.getAttribute('y'),+v.getAttribute('z'))}setG(new THREE.BufferGeometry().setAttribute('position',new THREE.Float32BufferAttribute(a,3)),f.name);let m=z.file('Metadata/CAD課題FIT.json');if(m){let x=JSON.parse(await m.async('text'));Object.assign(info,x);zooms=x.zooms||zooms}}}catch(e){alert('読み込みに失敗しました。STL または対応する3MFか確認してください。');console.error(e)}}$('open').onchange=e=>read(e.target.files[0]);$('save').onclick=make;['dragover','drop'].forEach(x=>app.addEventListener(x,e=>e.preventDefault()));app.addEventListener('drop',e=>read(e.dataTransfer.files[0]));set('model');resize();
+</script>
+<style>@media print{.operation{display:none!important}.a4{height:297mm!important;min-height:297mm!important}}</style>
+<script>mat.color.setHex(0xfbbf24);</script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<style>
+input[type=file]{display:none!important}.flow .save{margin-top:0}.step:not(.save):after{left:50%;transform:translateX(-50%)}
+</style>
+<script>
+sc.children.find(x=>x.isHemisphereLight).intensity=1.15;light.intensity=1.15;mat.color.setHex(0xd6a400);mat.roughness=.72;mat.metalness=0;
+const controls=new THREE.OrbitControls(cam,r.domElement);controls.target.set(0,0,0);controls.enableDamping=true;controls.dampingFactor=.08;controls.addEventListener('change',resize);
+const originalSetG=setG;setG=(x,n)=>{originalSetG(x,n);set('model')};
+</script>
+<script>
+mat.color.setHex(0x8a939f);mat.roughness=.62;
+info.grade=info.grade||'';info.group=info.group||'';info.number=info.number||'';
+const choices=(n,label,selected)=>`<option value="">${label}</option>${Array.from({length:n},(_,i)=>`<option value="${i+1}" ${String(selected)===String(i+1)?'selected':''}>${i+1}${label.slice(-1)}</option>`).join('')}`;
+good=()=>!!(g&&info.grade&&info.group&&info.number&&info.name.trim()&&info.name.trim()!=='ガチャポン太郎'&&info.reference.trim()&&info.reflection.trim());
+flow=()=>{info.classNo=info.grade&&info.group&&info.number?`${info.grade}年${info.group}組${info.number}番`:'';for(let x of document.querySelectorAll('[data-s]'))x.classList.toggle('done',x.dataset.s==='model'?!!g:x.dataset.s==='person'?!!(info.grade&&info.group&&info.number&&info.name.trim()&&info.name.trim()!=='ガチャポン太郎'):x.dataset.s==='report'?!!(info.reference&&info.reflection):false);$('save').disabled=!good()};
+person=()=>`<h2>提出者情報を入力</h2><label class=field>学年<select id=grade>${choices(9,'年',info.grade)}</select></label><label class=field>クラス<select id=group>${choices(9,'組',info.group)}</select></label><label class=field>番号<select id=number><option value="">番号</option>${Array.from({length:99},(_,i)=>`<option value="${i+1}" ${String(info.number)===String(i+1)?'selected':''}>${i+1}番</option>`).join('')}</select></label><label class=field>氏名<input id=personName value="${info.name||'ガチャポン太郎'}"></label><button class="btn next" onclick="set('report')">次へ</button><div class=status></div>`;
+set=s=>{active=s;document.querySelectorAll('[data-s]').forEach(x=>x.classList.toggle('active',x.dataset.s===s));drawer.innerHTML=s==='person'?person():s==='report'?report():s==='confirm'?confirm():'';drawer.classList.toggle('show',s!=='model');if(s==='person'){['grade','group','number'].forEach(k=>$(k).onchange=e=>{info[k]=e.target.value;flow()});personName.oninput=e=>{info.name=e.target.value;flow()}}if(s==='report'){['reference','reflection'].forEach(k=>$(k).oninput=e=>{info[k]=e.target.value;flow()});document.querySelectorAll('.zoom').forEach(x=>x.oninput=e=>{zooms[+e.target.dataset.i]=+e.target.value;views()});setTimeout(views)}};
+</script>
+<style>
+.circle,.guide{left:50%;top:50%}#save{display:none}.flow{bottom:auto}.flow .step{min-height:55px}.drawer.report-mode{left:50%;right:auto;top:50%;transform:translate(-50%,-50%);width:min(700px,calc(100vw - 300px));max-height:92vh;padding:0;background:#fff;border:0;border-radius:0;box-shadow:0 16px 50px #33415544}.a4{min-height:calc(min(700px,100vw - 300px) * 1.35);padding:48px 54px;background:#fff}.a4head{border-bottom:1px solid #94a3b8;padding-bottom:12px;margin-bottom:16px}.a4head h2{margin:0;text-align:center;font-family:serif;font-size:25px}.a4date{text-align:right;font-size:11px;margin-top:8px}.a4 .views{grid-template-columns:repeat(2,1fr);gap:12px}.a4 .view{padding:6px}.a4 .view canvas{aspect-ratio:1.35}.a4 .field textarea{resize:none}.a4 .actions{display:flex;justify-content:flex-end;gap:10px;margin-top:20px}.a4 .actions button:disabled{opacity:.45}@media print{body>*{visibility:hidden}.drawer.report-mode,.drawer.report-mode *{visibility:visible}.drawer.report-mode{position:fixed;inset:0!important;transform:none!important;width:100%!important;max-height:none!important;box-shadow:none}.a4{width:210mm;min-height:297mm;padding:18mm}.a4 .actions{display:none}}
+</style>
+<script>
+document.querySelector('[data-s="confirm"] span:nth-child(2)').firstChild.data='提出用3MF保存';
+function now(){return new Date().toLocaleString('ja-JP',{year:'numeric',month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'})}
+person=()=>`<h2>提出者情報を入力</h2><label class=field>学年<input id=grade inputmode=numeric pattern="[0-9]*" maxlength=1 value="${info.grade}" placeholder="1〜9"></label><label class=field>クラス<input id=group inputmode=numeric pattern="[0-9]*" maxlength=1 value="${info.group}" placeholder="1〜9"></label><label class=field>番号<input id=number inputmode=numeric pattern="[0-9]*" maxlength=2 value="${info.number}" placeholder="1〜99"></label><label class=field>氏名<input id=personName value="${info.name||'ガチャポン太郎'}"></label><button class="btn next" onclick="set('report')">次へ</button><div class=status>学年は1〜9、クラスは1〜9、番号は1〜99を半角で入力してください。</div>`;
+good=()=>!!(g&&/^[1-9]$/.test(info.grade)&&/^[1-9]$/.test(info.group)&&/^(?:[1-9]|[1-9][0-9])$/.test(info.number)&&info.name.trim()&&info.name.trim()!=='ガチャポン太郎'&&info.reference.trim()&&info.reflection.trim());
+flow=()=>{info.classNo=info.grade&&info.group&&info.number?`${info.grade}年${info.group}組${info.number}番`:'';for(let x of document.querySelectorAll('[data-s]'))x.classList.toggle('done',x.dataset.s==='model'?!!g:x.dataset.s==='person'?!!(info.grade&&info.group&&info.number&&info.name.trim()&&info.name.trim()!=='ガチャポン太郎'):x.dataset.s==='report'?!!(info.reference&&info.reflection):false)};
+report=()=>`<article class=a4><header class=a4head><h2>CAD課題報告書</h2><div class=a4date>作成日時：${now()}</div></header><div class=views>${['正面','右側面','背面','左側面'].map((x,i)=>`<div class=view><canvas id=v${i}></canvas><small>${x}</small></div>`).join('')}</div><label class=field>参考にしたもの<textarea id=reference rows=2>${info.reference}</textarea></label><label class=field>気づいたこと・考えたこと<textarea id=reflection rows=5>${info.reflection}</textarea></label><div class=actions><button class=btn onclick="window.print()" ${good()?'':'disabled'}>印刷用PDFを出力</button><button class=btn onclick="make()" ${good()?'':'disabled'}>提出用3MFを保存</button></div></article>`;
+views=()=>{if(active!=='report')return;for(let i=0;i<4;i++){let c=$('v'+i);if(!c)continue;c.width=260;c.height=190;if(!g)continue;let rr=new THREE.WebGLRenderer({canvas:c,antialias:true}),cc=new THREE.PerspectiveCamera(35,260/190,.1,100),p=[[0,-7,0],[7,0,0],[0,7,0],[-7,0,0]][i];rr.setSize(260,190);cc.up.set(0,0,1);cc.position.set(...p).multiplyScalar(1/(zooms[i%3]||1));cc.lookAt(0,0,0);rr.render(sc,cc);rr.dispose()}};
+set=s=>{active=s;document.querySelectorAll('[data-s]').forEach(x=>x.classList.toggle('active',x.dataset.s===s));drawer.classList.toggle('show',s!=='model');drawer.classList.toggle('report-mode',s==='report');drawer.innerHTML=s==='person'?person():s==='report'?report():s==='confirm'?confirm():'';if(s==='person'){['grade','group','number'].forEach(k=>$(k).oninput=e=>{info[k]=e.target.value.replace(/[^0-9]/g,'');flow()});personName.oninput=e=>{info.name=e.target.value;flow()}}if(s==='report'){['reference','reflection'].forEach(k=>$(k).oninput=e=>{info[k]=e.target.value;flow();set('report')});setTimeout(views)}};
+</script>
+<script>
+set=s=>{active=s;document.querySelectorAll('[data-s]').forEach(x=>x.classList.toggle('active',x.dataset.s===s));drawer.classList.toggle('show',s!=='model');drawer.classList.toggle('report-mode',s==='report');drawer.innerHTML=s==='person'?person():s==='report'?report():s==='confirm'?confirm():'';if(s==='person'){['grade','group','number'].forEach(k=>$(k).oninput=e=>{info[k]=e.target.value.replace(/[^0-9]/g,'');flow()});personName.oninput=e=>{info.name=e.target.value;flow()}}if(s==='report'){['reference','reflection'].forEach(k=>$(k).oninput=e=>{info[k]=e.target.value;flow();drawer.querySelectorAll('.actions button').forEach(b=>b.disabled=!good())});setTimeout(views)}};
+</script>
+<script>
+document.querySelector('[data-s="person"] span:nth-child(2)').firstChild.data='提出者情報の入力';
+const options=(from,to)=>Array.from({length:to-from+1},(_,i)=>`<option value="${String(i+from).padStart(2,'0')}"></option>`).join('');
+good=()=>!!(g&&/^[1-9]$/.test(info.grade)&&/^[1-9]$/.test(info.group)&&/^(?:0[1-9]|[1-9][0-9])$/.test(info.number)&&info.name.trim()&&info.name.trim()!=='ガチャポン太郎'&&info.reference.trim()&&info.reflection.trim());
+flow=()=>{info.classNo=info.grade&&info.group&&info.number?`${info.grade}年${info.group}組${info.number}番`:'';for(let x of document.querySelectorAll('[data-s]'))x.classList.toggle('done',x.dataset.s==='model'?!!g:x.dataset.s==='person'?!!(info.grade&&info.group&&info.number&&info.name.trim()&&info.name.trim()!=='ガチャポン太郎'):x.dataset.s==='report'?!!(info.reference&&info.reflection):false)};
+person=()=>`<h2>提出者情報の入力</h2><label class=field>学年<input id=grade inputmode=numeric pattern="[1-9]" maxlength=1 list=grades value="${info.grade}" placeholder="1〜9"></label><label class=field>クラス<input id=group inputmode=numeric pattern="[1-9]" maxlength=1 list=groups value="${info.group}" placeholder="1〜9"></label><label class=field>番号<input id=number inputmode=numeric pattern="[0-9]{2}" maxlength=2 list=numbers value="${info.number}" placeholder="01〜99"></label><datalist id=grades>${options(1,9).replaceAll('0','')}</datalist><datalist id=groups>${options(1,9).replaceAll('0','')}</datalist><datalist id=numbers>${options(1,99)}</datalist><label class=field>氏名<input id=personName value="${info.name||'ガチャポン太郎'}"></label><button class="btn next" onclick="set('report')">次へ</button><div class=status>学年・クラス・番号は候補から選ぶか、半角数字で入力してください。</div>`;
+</script>
+<script>
+flow=()=>{if(/^\d$/.test(info.number))info.number=info.number.padStart(2,'0');info.classNo=info.grade&&info.group&&info.number?`${info.grade}年${info.group}組${info.number}番`:'';for(let x of document.querySelectorAll('[data-s]'))x.classList.toggle('done',x.dataset.s==='model'?!!g:x.dataset.s==='person'?!!(info.grade&&info.group&&info.number&&info.name.trim()&&info.name.trim()!=='ガチャポン太郎'):x.dataset.s==='report'?!!(info.reference&&info.reflection):false)};
+report=()=>`<article class=a4><header class=a4head><h2>CAD課題報告書</h2><div class=a4date>作成日時：${now()}</div></header><div class=reportControls>正投影図の拡大率 <input id=orthoZoom type=range min=.65 max=1.5 step=.01 value=${zooms[0]||1}>　等角図の拡大率 <input id=isoZoom type=range min=.65 max=1.5 step=.01 value=${zooms[1]||1}></div><div class=views><div class=view><canvas id=v0></canvas><small>平面図</small></div><div class=view><canvas id=v1></canvas><small>等角図</small></div><div class=view><canvas id=v2></canvas><small>正面図</small></div><div class=view><canvas id=v3></canvas><small>右側面図</small></div></div><label class=field>参考にしたもの<textarea id=reference rows=2>${info.reference}</textarea></label><label class=field>気づいたこと・考えたこと<textarea id=reflection rows=5>${info.reflection}</textarea></label><footer class=reportFooter>${info.grade||'　'}年　${info.group||'　'}組　${info.number||'　'}番　${info.name||'　'}</footer><div class=actions><button class=btn onclick="window.print()" ${good()?'':'disabled'}>印刷用PDFを出力</button><button class=btn onclick="make()" ${good()?'':'disabled'}>提出用3MFを保存</button></div></article>`;
+views=()=>{if(active!=='report')return;for(let i=0;i<4;i++){let c=$('v'+i);if(!c)continue;c.width=260;c.height=190;let rr=new THREE.WebGLRenderer({canvas:c,antialias:true}),cc;rr.setSize(260,190);rr.setClearColor(0xffffff,1);if(i===1){cc=new THREE.PerspectiveCamera(35,260/190,.1,100);cc.up.set(0,0,1);cc.position.set(6,-6,5).multiplyScalar(1/(zooms[1]||1))}else{let a=3.1/(zooms[0]||1),ratio=260/190;cc=new THREE.OrthographicCamera(-a*ratio,a*ratio,a,-a,.1,100);cc.up.set(0,0,1);[[0,0,8],[0,0,0],[0,-8,0],[8,0,0]][i].forEach((v,j)=>cc.position.setComponent(j,v));if(i===0)cc.position.set(0,0,8);if(i===2)cc.position.set(0,-8,0);if(i===3)cc.position.set(8,0,0)}cc.lookAt(0,0,0);rr.render(sc,cc);rr.dispose()}};
+set=s=>{active=s;document.querySelectorAll('[data-s]').forEach(x=>x.classList.toggle('active',x.dataset.s===s));drawer.classList.toggle('show',s!=='model');drawer.classList.toggle('report-mode',s==='report');drawer.innerHTML=s==='person'?person():s==='report'?report():s==='confirm'?confirm():'';if(s==='person'){['grade','group','number'].forEach(k=>$(k).oninput=e=>{info[k]=e.target.value.replace(/[^0-9]/g,'');flow()});number.onblur=()=>{flow();number.value=info.number};personName.oninput=e=>{info.name=e.target.value;flow()}}if(s==='report'){['reference','reflection'].forEach(k=>$(k).oninput=e=>{info[k]=e.target.value;flow();drawer.querySelectorAll('.actions button').forEach(b=>b.disabled=!good())});orthoZoom.oninput=e=>{zooms[0]=+e.target.value;zooms[2]=zooms[0];views()};isoZoom.oninput=e=>{zooms[1]=+e.target.value;views()};setTimeout(views)}};
+</script>
+<style>
+.drawer.report-mode{width:min(690px,calc(100vw - 260px));overflow:visible}.a4{min-height:auto;height:calc(min(690px,100vw - 260px)*1.33);padding:38px 42px}.diagramGrid{display:grid;grid-template-columns:1fr 1fr 1.28fr;grid-template-rows:46% 23% 31%;gap:7px;height:58%}.diagramGrid>*{min-width:0;min-height:0;border:1px solid var(--line);padding:4px;background:#fff}.diagramGrid canvas{display:block;width:100%;height:calc(100% - 15px)}.persp{grid-column:1/-1;grid-row:1;border:0!important;padding:0!important}.persp canvas{height:100%}.plane{grid-column:1;grid-row:2}.front{grid-column:1;grid-row:3}.referenceBox{grid-column:2;grid-row:2}.side{grid-column:2;grid-row:3}.reflectionBox{grid-column:3;grid-row:2/4}.diagramGrid label{display:block;font-size:10px;font-weight:700;color:#475569}.diagramGrid textarea{width:100%;height:calc(100% - 17px);margin-top:2px;resize:none;border:0;background:#f8fbff;padding:5px;font:11px/1.45 system-ui}.operation{position:absolute;left:calc(100% + 13px);top:0;width:170px;padding:12px;border:1px solid var(--line);border-radius:12px;background:#ffffffed;box-shadow:0 7px 20px #33415522;font-size:11px}.operation label{display:grid;gap:6px;margin-bottom:13px;font-weight:700;color:#475569}.operation input{width:100%;accent-color:#2563eb}.operation .btn{width:100%;margin:4px 0;padding:10px;font-size:12px}.operation .btn:disabled{opacity:.45}@media(max-width:900px){.operation{position:static;width:auto;margin:10px}.drawer.report-mode{width:min(700px,94vw)}.a4{height:auto;min-height:680px}}
+</style>
+<script>
+report=()=>`<article class=a4><header class=a4head><h2>CAD課題報告書</h2><div class=a4date>作成日時：${now()}<br>${info.grade||'　'}年　${info.group||'　'}組　${info.number||'　'}番　${info.name||'　'}</div></header><section class=diagramGrid><div class=persp><canvas id=v1></canvas></div><div class=plane><canvas id=v0></canvas><small>平面図</small></div><div class=front><canvas id=v2></canvas><small>正面図</small></div><div class=referenceBox><label>参考にしたもの</label><textarea id=reference>${info.reference}</textarea></div><div class=side><canvas id=v3></canvas><small>右側面図</small></div><div class=reflectionBox><label>気づいたこと・考えたこと</label><textarea id=reflection>${info.reflection}</textarea></div></section></article><aside class=operation><label>正面図などの拡大率<input id=orthoZoom type=range min=.15 max=8 step=.01 value=${zooms[0]||1}></label><label>パースの拡大率<input id=isoZoom type=range min=.15 max=8 step=.01 value=${zooms[1]||1}></label><button class=btn onclick="window.print()" ${good()?'':'disabled'}>印刷用PDFを出力</button><button class=btn onclick="make()" ${good()?'':'disabled'}>提出用3MFを保存</button></aside>`;
+views=()=>{if(active!=='report')return;for(let i=0;i<4;i++){let c=$('v'+i);if(!c)continue;let rect=c.getBoundingClientRect(),w=Math.max(80,Math.round(rect.width)),h=Math.max(80,Math.round(rect.height));c.width=w;c.height=h;let rr=new THREE.WebGLRenderer({canvas:c,antialias:true}),cc;rr.setSize(w,h);rr.setClearColor(0xffffff,1);if(i===1){cc=new THREE.PerspectiveCamera(35,w/h,.1,100);cc.up.set(0,0,1);let dist=9/(zooms[1]||1);cc.position.set(Math.cos(isoAzimuth)*Math.cos(isoElevation)*dist,Math.sin(isoAzimuth)*Math.cos(isoElevation)*dist,Math.sin(isoElevation)*dist)}else{let a=3.1/(zooms[0]||1),ratio=w/h;cc=new THREE.OrthographicCamera(-a*ratio,a*ratio,a,-a,.1,100);cc.up.set(0,0,1);if(i===0)cc.position.set(0,0,8);if(i===2)cc.position.set(0,-8,0);if(i===3)cc.position.set(8,0,0)}cc.lookAt(0,0,0);let outline;if(g&&i!==1){outline=new THREE.LineSegments(new THREE.EdgesGeometry(g,15),new THREE.LineBasicMaterial({color:0x1f2937}));sc.add(outline)}rr.render(sc,cc);if(outline){sc.remove(outline);outline.geometry.dispose();outline.material.dispose()}rr.dispose()}};
+set=s=>{active=s;document.querySelectorAll('[data-s]').forEach(x=>x.classList.toggle('active',x.dataset.s===s));drawer.classList.toggle('show',s!=='model');drawer.classList.toggle('report-mode',s==='report');drawer.innerHTML=s==='person'?person():s==='report'?report():s==='confirm'?confirm():'';if(s==='person'){['grade','group','number'].forEach(k=>$(k).oninput=e=>{info[k]=e.target.value.replace(/[^0-9]/g,'');flow()});number.onblur=()=>{flow();number.value=info.number};personName.oninput=e=>{info.name=e.target.value;flow()}}if(s==='report'){['reference','reflection'].forEach(k=>$(k).oninput=e=>{info[k]=e.target.value;flow();drawer.querySelectorAll('.operation .btn').forEach(b=>b.disabled=!good())});orthoZoom.oninput=e=>{zooms[0]=+e.target.value;zooms[2]=zooms[0];views()};isoZoom.oninput=e=>{zooms[1]=+e.target.value;views()};setTimeout(views)}};
+</script>
+<style>.reportControls{font-size:11px;text-align:center;margin:0 0 9px}.reportControls input{vertical-align:middle;accent-color:#2563eb;width:70px}.reportFooter{margin-top:18px;border-top:1px solid #94a3b8;padding-top:8px;text-align:right;font-size:12px}.a4 .view canvas{background:#fff}</style>
+<style>
+.a4 .views{display:grid;grid-template-columns:1fr 2fr;grid-template-rows:repeat(3,1fr);gap:8px}.a4 .view{min-height:0}.a4 .view:nth-child(1){grid-area:1/1}.a4 .view:nth-child(3){grid-area:2/1}.a4 .view:nth-child(4){grid-area:3/1}.a4 .view:nth-child(2){grid-area:1/2/4/3}.a4 .view:nth-child(2) canvas{height:100%;aspect-ratio:auto}.a4 .views{height:370px}.reportControls input{width:100px}
+</style>
+<script>
+let isoAzimuth=-.78,isoElevation=.62;
+report=()=>`<article class=a4><header class=a4head><h2>CAD課題報告書</h2><div class=a4date>作成日時：${now()}<br>${info.grade||'　'}年　${info.group||'　'}組　${info.number||'　'}番　${info.name||'　'}</div></header><div class=reportControls>正投影図の拡大率 <input id=orthoZoom type=range min=.2 max=5 step=.01 value=${zooms[0]||1}>　パース図の拡大率 <input id=isoZoom type=range min=.2 max=5 step=.01 value=${zooms[1]||1}></div><div class=views><div class=view><canvas id=v0></canvas><small>平面図</small></div><div class=view><canvas id=v1></canvas></div><div class=view><canvas id=v2></canvas><small>正面図</small></div><div class=view><canvas id=v3></canvas><small>右側面図</small></div></div><label class=field>参考にしたもの<textarea id=reference rows=2>${info.reference}</textarea></label><label class=field>気づいたこと・考えたこと<textarea id=reflection rows=5>${info.reflection}</textarea></label><div class=actions><button class=btn onclick="window.print()" ${good()?'':'disabled'}>印刷用PDFを出力</button><button class=btn onclick="make()" ${good()?'':'disabled'}>提出用3MFを保存</button></div></article>`;
+views=()=>{if(active!=='report')return;for(let i=0;i<4;i++){let c=$('v'+i);if(!c)continue;let wide=i===1,w=wide?420:190,h=wide?350:110;c.width=w;c.height=h;let rr=new THREE.WebGLRenderer({canvas:c,antialias:true}),cc;rr.setSize(w,h);rr.setClearColor(0xffffff,1);if(i===1){cc=new THREE.PerspectiveCamera(35,w/h,.1,100);cc.up.set(0,0,1);let dist=9/(zooms[1]||1);cc.position.set(Math.cos(isoAzimuth)*Math.cos(isoElevation)*dist,Math.sin(isoAzimuth)*Math.cos(isoElevation)*dist,Math.sin(isoElevation)*dist)}else{let a=3.1/(zooms[0]||1),ratio=w/h;cc=new THREE.OrthographicCamera(-a*ratio,a*ratio,a,-a,.1,100);cc.up.set(0,0,1);if(i===0)cc.position.set(0,0,8);if(i===2)cc.position.set(0,-8,0);if(i===3)cc.position.set(8,0,0)}cc.lookAt(0,0,0);let outline;if(g&&i!==1){outline=new THREE.LineSegments(new THREE.EdgesGeometry(g,15),new THREE.LineBasicMaterial({color:0x1f2937}));sc.add(outline)}rr.render(sc,cc);if(outline){sc.remove(outline);outline.geometry.dispose();outline.material.dispose()}rr.dispose();if(!c._wired){c._wired=true;c.addEventListener('wheel',e=>{e.preventDefault();let key=i===1?1:0;zooms[key]=Math.max(.15,Math.min(8,zooms[key]*(e.deltaY>0?.88:1.14)));if(key===0)zooms[2]=zooms[0];let slider=$(key===1?'isoZoom':'orthoZoom');if(slider)slider.value=Math.min(5,zooms[key]);views()},{passive:false});let drag=null;c.addEventListener('pointerdown',e=>{if(i!==1)return;drag=[e.clientX,e.clientY];c.setPointerCapture(e.pointerId)});c.addEventListener('pointermove',e=>{if(!drag)return;isoAzimuth+=(e.clientX-drag[0])*.012;isoElevation=Math.max(-1.3,Math.min(1.3,isoElevation+(drag[1]-e.clientY)*.012));drag=[e.clientX,e.clientY];views()});c.addEventListener('pointerup',()=>drag=null)}}};
+set=s=>{active=s;document.querySelectorAll('[data-s]').forEach(x=>x.classList.toggle('active',x.dataset.s===s));drawer.classList.toggle('show',s!=='model');drawer.classList.toggle('report-mode',s==='report');drawer.innerHTML=s==='person'?person():s==='report'?report():s==='confirm'?confirm():'';if(s==='person'){['grade','group','number'].forEach(k=>$(k).oninput=e=>{info[k]=e.target.value.replace(/[^0-9]/g,'');flow()});number.onblur=()=>{flow();number.value=info.number};personName.oninput=e=>{info.name=e.target.value;flow()}}if(s==='report'){['reference','reflection'].forEach(k=>$(k).oninput=e=>{info[k]=e.target.value;flow();drawer.querySelectorAll('.actions button').forEach(b=>b.disabled=!good())});orthoZoom.oninput=e=>{zooms[0]=+e.target.value;zooms[2]=zooms[0];views()};isoZoom.oninput=e=>{zooms[1]=+e.target.value;views()};setTimeout(views)}};
+</script>
+<style>
+/* Report layout — final authoritative definition */
+.drawer.report-mode{width:min(690px,calc(100vw - 260px));overflow:visible}.a4{height:calc(min(690px,100vw - 260px)*1.33);min-height:0;padding:38px 42px}.diagramGrid{display:grid;grid-template-columns:1fr 1fr 1.28fr;grid-template-rows:46% 23% 31%;gap:7px;height:58%}.diagramGrid>*{min-width:0;min-height:0;border:1px solid var(--line);padding:4px;background:#fff}.diagramGrid canvas{display:block;width:100%;height:calc(100% - 15px);background:#fff}.persp{grid-column:1/-1;grid-row:1;border:0!important;padding:0!important}.persp canvas{height:100%}.plane{grid-column:1;grid-row:2}.front{grid-column:1;grid-row:3}.referenceBox{grid-column:2;grid-row:2}.side{grid-column:2;grid-row:3}.reflectionBox{grid-column:3;grid-row:2/4}.diagramGrid label{display:block;font-size:10px;font-weight:700;color:#475569}.diagramGrid textarea{width:100%;height:calc(100% - 17px);margin-top:2px;resize:none;border:0;background:#f8fbff;padding:5px;font:11px/1.45 system-ui}.operation{position:absolute;left:calc(100% + 13px);top:0;width:170px;padding:12px;border:1px solid var(--line);border-radius:12px;background:#ffffffed;box-shadow:0 7px 20px #33415522;font-size:11px}.operation label{display:grid;gap:6px;margin-bottom:13px;font-weight:700;color:#475569}.operation input{width:100%;accent-color:#2563eb}.operation .btn{width:100%;margin:4px 0;padding:10px;font-size:12px}.operation .btn:disabled{opacity:.45}@media print{.operation{display:none!important}.a4{height:297mm!important;min-height:297mm!important}}
+</style>
+<script>
+report=()=>`<article class=a4><header class=a4head><h2>CAD課題報告書</h2><div class=a4date>作成日時：${now()}<br>${info.grade||'　'}年　${info.group||'　'}組　${info.number||'　'}番　${info.name||'　'}</div></header><section class=diagramGrid><div class=persp><canvas id=v1></canvas></div><div class=plane><canvas id=v0></canvas><small>平面図</small></div><div class=front><canvas id=v2></canvas><small>正面図</small></div><div class=referenceBox><label>参考にしたもの</label><textarea id=reference>${info.reference}</textarea></div><div class=side><canvas id=v3></canvas><small>右側面図</small></div><div class=reflectionBox><label>気づいたこと・考えたこと</label><textarea id=reflection>${info.reflection}</textarea></div></section></article><aside class=operation><label>正面図などの拡大率<input id=orthoZoom type=range min=.15 max=8 step=.01 value=${zooms[0]||1}></label><label>パースの拡大率<input id=isoZoom type=range min=.15 max=8 step=.01 value=${zooms[1]||1}></label><button class=btn onclick="window.print()" ${good()?'':'disabled'}>印刷用PDFを出力</button><button class=btn onclick="make()" ${good()?'':'disabled'}>提出用3MFを保存</button></aside>`;
+views=()=>{if(active!=='report')return;for(let i=0;i<4;i++){let c=$('v'+i);if(!c)continue;let b=c.getBoundingClientRect(),w=Math.max(80,Math.round(b.width)),h=Math.max(80,Math.round(b.height));c.width=w;c.height=h;let rr=new THREE.WebGLRenderer({canvas:c,antialias:true}),cc;rr.setSize(w,h);rr.setClearColor(0xffffff,1);if(i===1){cc=new THREE.PerspectiveCamera(35,w/h,.1,100);cc.up.set(0,0,1);let d=9/(zooms[1]||1);cc.position.set(Math.cos(isoAzimuth)*Math.cos(isoElevation)*d,Math.sin(isoAzimuth)*Math.cos(isoElevation)*d,Math.sin(isoElevation)*d)}else{let a=3.1/(zooms[0]||1),q=w/h;cc=new THREE.OrthographicCamera(-a*q,a*q,a,-a,.1,100);cc.up.set(0,0,1);if(i===0)cc.position.set(0,0,8);if(i===2)cc.position.set(0,-8,0);if(i===3)cc.position.set(8,0,0)}cc.lookAt(0,0,0);let edge;if(g&&i!==1){edge=new THREE.LineSegments(new THREE.EdgesGeometry(g,15),new THREE.LineBasicMaterial({color:0x1f2937}));sc.add(edge)}rr.render(sc,cc);if(edge){sc.remove(edge);edge.geometry.dispose();edge.material.dispose()}rr.dispose()}};
+set=s=>{active=s;document.querySelectorAll('[data-s]').forEach(x=>x.classList.toggle('active',x.dataset.s===s));drawer.classList.toggle('show',s!=='model');drawer.classList.toggle('report-mode',s==='report');drawer.innerHTML=s==='person'?person():s==='report'?report():s==='confirm'?confirm():'';if(s==='person'){['grade','group','number'].forEach(k=>$(k).oninput=e=>{info[k]=e.target.value.replace(/[^0-9]/g,'');flow()});number.onblur=()=>{flow();number.value=info.number};personName.oninput=e=>{info.name=e.target.value;flow()}}if(s==='report'){['reference','reflection'].forEach(k=>$(k).oninput=e=>{info[k]=e.target.value;flow();drawer.querySelectorAll('.operation .btn').forEach(b=>b.disabled=!good())});orthoZoom.oninput=e=>{zooms[0]=+e.target.value;zooms[2]=zooms[0];views()};isoZoom.oninput=e=>{zooms[1]=+e.target.value;views()};setTimeout(views)}};
+</script>
+<style>
+#app.report-open>.title,#app.report-open>.guide,#app.report-open>.circle,#app.report-open>.name,#app.report-open>.flow{visibility:hidden}.drawer.report-mode{z-index:30}.diagramGrid{height:76%;grid-template-rows:63% 16% 21%}.persp{aspect-ratio:1.414/1}.plane,.front,.side{border:0!important}.referenceBox,.reflectionBox{border:1px solid #111!important}.diagramGrid textarea{background:#fff}.a4 .view small{display:block;color:#334155}
+</style>
+<script>
+const lastSet=set;set=s=>{lastSet(s);app.classList.toggle('report-open',s==='report')};
+const lastSetG=setG;setG=(x,n)=>{lastSetG(x,n);zooms[0]=1.7;zooms[2]=1.7};
+</script>
+<style>
+.referenceBox,.reflectionBox{border:0!important}.diagramGrid textarea{border:1px solid #94a3b8!important;border-radius:0}.persp canvas{touch-action:none;cursor:grab}.persp canvas:active{cursor:grabbing}
+</style>
+<script>
+const isoTarget=new THREE.Vector3(0,0,0);
+views=()=>{if(active!=='report')return;for(let i=0;i<4;i++){let c=$('v'+i);if(!c)continue;let b=c.getBoundingClientRect(),w=Math.max(80,Math.round(b.width)),h=Math.max(80,Math.round(b.height));c.width=w;c.height=h;let rr=new THREE.WebGLRenderer({canvas:c,antialias:true}),cc;rr.setSize(w,h);rr.setClearColor(0xffffff,1);if(i===1){cc=new THREE.PerspectiveCamera(35,w/h,.1,100);cc.up.set(0,0,1);let d=9/(zooms[1]||1);cc.position.copy(isoTarget).add(new THREE.Vector3(Math.cos(isoAzimuth)*Math.cos(isoElevation)*d,Math.sin(isoAzimuth)*Math.cos(isoElevation)*d,Math.sin(isoElevation)*d));cc.lookAt(isoTarget)}else{let a=3.1/(zooms[0]||1),q=w/h;cc=new THREE.OrthographicCamera(-a*q,a*q,a,-a,.1,100);cc.up.set(0,0,1);if(i===0)cc.position.set(0,0,8);if(i===2)cc.position.set(0,-8,0);if(i===3)cc.position.set(8,0,0);cc.lookAt(0,0,0)}let edge;if(g&&i!==1){edge=new THREE.LineSegments(new THREE.EdgesGeometry(g,15),new THREE.LineBasicMaterial({color:0x1f2937}));sc.add(edge)}rr.render(sc,cc);if(edge){sc.remove(edge);edge.geometry.dispose();edge.material.dispose()}rr.dispose();if(i===1&&!c._perspectiveWired){c._perspectiveWired=true;let points=new Map(),last=null;c.addEventListener('contextmenu',e=>e.preventDefault());c.addEventListener('wheel',e=>{e.preventDefault();zooms[1]=Math.max(.1,Math.min(12,zooms[1]*(e.deltaY>0?.88:1.14)));if($('isoZoom'))$('isoZoom').value=Math.min(8,zooms[1]);views()},{passive:false});c.addEventListener('pointerdown',e=>{points.set(e.pointerId,[e.clientX,e.clientY]);last=[e.clientX,e.clientY,e.button];c.setPointerCapture(e.pointerId)});c.addEventListener('pointermove',e=>{if(!points.has(e.pointerId))return;points.set(e.pointerId,[e.clientX,e.clientY]);let p=[...points.values()];if(p.length===2){let dx=p[0][0]-p[1][0],dy=p[0][1]-p[1][1],dist=Math.hypot(dx,dy);let prev=c._pinch||dist;zooms[1]=Math.max(.1,Math.min(12,zooms[1]*dist/prev));c._pinch=dist;if($('isoZoom'))$('isoZoom').value=Math.min(8,zooms[1])}else if(last){let dx=e.clientX-last[0],dy=e.clientY-last[1];if(last[2]===2){isoTarget.x-=dx*.012;isoTarget.z+=dy*.012}else{isoAzimuth+=dx*.012;isoElevation=Math.max(-1.45,Math.min(1.45,isoElevation-dy*.012))}last=[e.clientX,e.clientY,last[2]]}views()});let up=e=>{points.delete(e.pointerId);c._pinch=null;if(!points.size)last=null};c.addEventListener('pointerup',up);c.addEventListener('pointercancel',up)}}};
+function autoFitOrtho(){if(!g||app.dataset.orthoFit)return;let s=g.boundingBox.getSize(new THREE.Vector3()),req=0;for(let id of ['v0','v2','v3']){let c=$(id);if(!c)continue;let q=c.clientWidth/c.clientHeight,need=id==='v0'?Math.max(s.y/2,s.x/(2*q)):id==='v2'?Math.max(s.z/2,s.x/(2*q)):Math.max(s.z/2,s.y/(2*q));req=Math.max(req,need)}if(req){zooms[0]=zooms[2]=Math.max(.15,3.1/req*.94);app.dataset.orthoFit='1';if($('orthoZoom'))$('orthoZoom').value=Math.min(8,zooms[0]);views()}}
+const previousSet=set;set=s=>{previousSet(s);if(s==='report')setTimeout(autoFitOrtho,80)};
+</script>
+<script>const originalAutoFit=autoFitOrtho;autoFitOrtho=()=>{if(g)g.computeBoundingBox();originalAutoFit()};</script>
+<style>
+#app.report-open>.flow{visibility:visible!important;z-index:60}.step[data-s="confirm"]:after{display:none!important}.step:not(.save):after{font-size:21px!important;font-weight:900!important;font-family:system-ui,sans-serif!important;line-height:1!important}
+</style>
+<script>
+/* Correct top-view axis: Z is the viewing axis, Y is the top of the drawing. */
+const viewsBeforeAxisFix=views;views=()=>{viewsBeforeAxisFix();const c=$('v0');if(!c||active!=='report'||!g)return;let w=c.width,h=c.height,rr=new THREE.WebGLRenderer({canvas:c,antialias:true}),a=3.1/(zooms[0]||1),q=w/h,cc=new THREE.OrthographicCamera(-a*q,a*q,a,-a,.1,100);rr.setSize(w,h);rr.setClearColor(0xffffff,1);cc.up.set(0,1,0);cc.position.set(0,0,8);cc.lookAt(0,0,0);let edge=new THREE.LineSegments(new THREE.EdgesGeometry(g,15),new THREE.LineBasicMaterial({color:0x1f2937}));sc.add(edge);rr.render(sc,cc);sc.remove(edge);edge.geometry.dispose();edge.material.dispose();rr.dispose()};
+function autoFitPerspective(){if(!g||app.dataset.isoFit)return;g.computeBoundingBox();let s=g.boundingBox.getSize(new THREE.Vector3()).length()/2;zooms[1]=Math.max(.15,Math.min(8,9/(s/Math.tan(THREE.MathUtils.degToRad(35/2))*1.08)));app.dataset.isoFit='1';if($('isoZoom'))$('isoZoom').value=zooms[1]}
+const setBeforeIsoFit=set;set=s=>{setBeforeIsoFit(s);if(s==='report')setTimeout(()=>{autoFitPerspective();views()},90)};
+</script>
+<style>
+.plane{aspect-ratio:1/1;align-self:start}.diagramGrid textarea{border-radius:9px!important}.diagramGrid textarea::placeholder{color:#94a3b8;opacity:1;font-size:11px;line-height:1.5}
+</style>
+<script>
+const setBeforePlaceholders=set;set=s=>{setBeforePlaceholders(s);if(s==='report'){const ref=$('reference'),thought=$('reflection');if(ref&&!ref.value)ref.placeholder='例：自分の使っている◯◯社の◯◯というコンパスを参考にしました。';if(thought&&!thought.value)thought.placeholder='作成した中で苦労したことや、考えたことがあるはずです。ぜひ枠いっぱいに入力をお願いします。'}};
+</script>
+<style>
+.diagramGrid{grid-template-rows:48% 31% 21%}.plane{height:100%;aspect-ratio:auto}.referenceBox{height:100%}.reflectionBox{height:100%}
+</style>
+<script>
+/* Render the top view with the same horizontal world scale as the front view. */
+const viewsBeforeMatchedTop=views;views=()=>{viewsBeforeMatchedTop();const top=$('v0'),front=$('v2');if(!top||!front||active!=='report'||!g)return;let w=top.width,h=top.height,qTop=w/h,qFront=front.width/front.height,z=zooms[0]||1,a=3.1/z*qFront/qTop,rr=new THREE.WebGLRenderer({canvas:top,antialias:true}),cc=new THREE.OrthographicCamera(-a*qTop,a*qTop,a,-a,.1,100);rr.setSize(w,h);rr.setClearColor(0xffffff,1);cc.up.set(0,1,0);cc.position.set(0,0,8);cc.lookAt(0,0,0);let edge=new THREE.LineSegments(new THREE.EdgesGeometry(g,15),new THREE.LineBasicMaterial({color:0x1f2937}));sc.add(edge);rr.render(sc,cc);sc.remove(edge);edge.geometry.dispose();edge.material.dispose();rr.dispose()};
+</script>
+<style>
+.a4head{display:flex;align-items:center;justify-content:space-between;min-height:112px;padding:12px 0 18px;margin-bottom:0}.a4head h2{margin:0!important;text-align:left!important;flex:1}.a4date{margin:0!important;min-width:245px;line-height:1.75}.diagramGrid{margin-top:32px;height:66%;grid-template-rows:57% 18% 25%}.referenceBox{align-self:start;height:50%!important}.reflectionBox{height:100%!important}
+</style>
+<style>
+.diagramGrid{--inner:calc(min(690px,100vw - 260px) - 84px);--cell:calc(var(--inner)/3.28);margin-top:34px;height:calc(100% - 160px);grid-template-rows:calc(var(--inner)/1.414) var(--cell) 1fr}.persp{overflow:hidden}.persp canvas{display:block!important;width:100%!important;height:100%!important}.plane{height:var(--cell)!important;aspect-ratio:1/1;overflow:hidden}.referenceBox{height:calc(var(--cell)/2)!important;overflow:hidden}.front,.side{overflow:hidden}
+</style>
+<style>
+.a4head{min-height:82px;padding-bottom:8px}.diagramGrid{margin-top:64px}.persp{transform:translateY(-30px)}
+</style>
+<style>.a4head h2{transform:translateX(.5em)}</style>
+<script>
+let persistentOutline=null;
+const setGWithOutline=setG;setG=(geometry,name)=>{if(persistentOutline)sc.remove(persistentOutline);setGWithOutline(geometry,name);persistentOutline=new THREE.LineSegments(new THREE.EdgesGeometry(g,15),new THREE.LineBasicMaterial({color:0x1f2937}));sc.add(persistentOutline)};
+</script>
+<style>@media print{.a4{padding-left:23mm!important}}</style>
+<script>
+const setBeforeReflectionPlaceholder=set;set=s=>{setBeforeReflectionPlaceholder(s);if(s==='report'){const thought=$('reflection');if(thought&&!thought.value)thought.placeholder='CADデータを作成する中で苦労したことや、考えたことをできるだけ詳細に書いてください。ぜひ枠いっぱいに入力をお願いします。'}};
+</script>
+<script>
+function fitPerspectiveToFrame(){if(!g||app.dataset.isoAutoFit)return;const c=$('v1');if(!c)return;g.computeBoundingSphere();const radius=g.boundingSphere.radius;const aspect=Math.max(.1,c.clientWidth/c.clientHeight);const halfV=THREE.MathUtils.degToRad(35/2);const halfH=Math.atan(Math.tan(halfV)*aspect);const distance=radius/Math.sin(Math.min(halfV,halfH))*1.06;zooms[1]=Math.max(.15,Math.min(8,9/distance));app.dataset.isoAutoFit='1';if($('isoZoom'))$('isoZoom').value=zooms[1];views()}
+const setBeforePerspectiveFit=set;set=s=>{setBeforePerspectiveFit(s);if(s==='report')setTimeout(fitPerspectiveToFrame,120)};
+const setGBeforePerspectiveFit=setG;setG=(geometry,name)=>{delete app.dataset.isoAutoFit;setGBeforePerspectiveFit(geometry,name)};
+</script>
+<script>
+function tightenDefaultViews(){if(app.dataset.viewTight)return;zooms[0]=Math.min(8,zooms[0]*1.06);zooms[2]=zooms[0];zooms[1]=Math.min(8,zooms[1]*1.10);app.dataset.viewTight='1';if($('orthoZoom'))$('orthoZoom').value=zooms[0];if($('isoZoom'))$('isoZoom').value=zooms[1];views()}
+const setBeforeTightViews=set;set=s=>{setBeforeTightViews(s);if(s==='report')setTimeout(tightenDefaultViews,220)};
+const setGBeforeTightViews=setG;setG=(geometry,name)=>{delete app.dataset.viewTight;setGBeforeTightViews(geometry,name)};
+</script>
+<script>
+function fitToday(){const d=new Date();return `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`}
+function fitTime(){const d=new Date();return `${String(d.getHours()).padStart(2,'0')}${String(d.getMinutes()).padStart(2,'0')}`}
+function fitSanitize(text){return String(text||'').trim().replace(/[\\/:*?"<>|]/g,'').replace(/\s+/g,'')}
+function fitBaseName(){const grade=String(info.grade||'0').trim()||'0',klass=String(info.group||'0').trim()||'0',number=String(info.number||'0').trim().padStart(2,'0'),name=fitSanitize(info.name);const base=`${grade}${klass}${number}_${fitToday()}_${fitTime()}`;return name?`${base}_${name}`:base}
+submissionFileName=()=>fitBaseName();
+make=async()=>{if(!good())return;info.reportView={perspectiveZoom:zooms[1],orthographicZoom:zooms[0],azimuth:isoAzimuth,elevation:isoElevation,position:{x:isoTarget.x,y:isoTarget.y,z:isoTarget.z}};const z=new JSZip();z.file('[Content_Types].xml','<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="model" ContentType="application/vnd.ms-package.3dmanufacturing-3dmodel+xml"/><Default Extension="json" ContentType="application/json"/></Types>');z.file('_rels/.rels','<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Target="/3D/3dmodel.model" Id="r" Type="http://schemas.microsoft.com/3dmanufacturing/2013/01/3dmodel"/></Relationships>');z.file('3D/3dmodel.model',xml());z.file('Metadata/CAD課題FIT.json',JSON.stringify({...info,zooms},null,2));const a=document.createElement('a');a.href=URL.createObjectURL(await z.generateAsync({type:'blob'}));a.download=`${fitBaseName()}.3MF`;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)};
+</script>
+<script>stepLabel=pdf=>{newStep.querySelector('span:nth-child(2)').firstChild.data=pdf?'CAD課題報告書の印刷':'提出用3MF保存'}</script>
+<style>
+@media print{
+  #app> :not(#drawer){display:none!important}
+  #app{background:#fff!important}
+  #drawer.drawer.report-mode{display:block!important;position:fixed!important;inset:0!important;transform:none!important;width:100%!important;max-height:none!important;overflow:visible!important;box-shadow:none!important}
+  #drawer .operation{display:none!important}
+  #drawer .a4{display:block!important;margin:0!important;box-shadow:none!important}
+}
+</style>
+<style>
+@page{size:A4 portrait;margin:0}
+@media print{
+  html,body,#app{width:210mm!important;height:297mm!important;overflow:hidden!important;background:#fff!important}
+  #drawer .a4{width:210mm!important;height:297mm!important;min-height:297mm!important;padding-top:18mm!important;padding-right:18mm!important;padding-bottom:18mm!important;padding-left:23mm!important;page-break-after:avoid!important}
+}
+</style>
+<style>
+@media print{
+  .a4head{min-height:24mm!important;padding:2mm 0 4mm!important}.a4head h2{font-size:18pt!important}.a4date{font-size:9pt!important;min-width:56mm!important}
+  .diagramGrid{--inner:169mm!important;--cell:51.5mm!important;margin-top:7mm!important;height:calc(297mm - 66mm)!important;grid-template-rows:95.7mm 51.5mm 1fr!important;gap:2.5mm!important}
+  .persp{transform:none!important}.diagramGrid label,.diagramGrid small{font-size:8pt!important}.diagramGrid textarea{font-size:8.5pt!important}
+}
+</style>
+<style>
+@media print{
+  .diagramGrid{height:200mm!important;grid-template-rows:110mm 32mm 58mm!important}
+  .referenceBox{height:16mm!important}
+}
+</style>
+<style>@media print{.diagramGrid{grid-template-rows:110mm 51.5mm 38.5mm!important}.plane{height:51.5mm!important;overflow:visible!important}.plane small{display:block!important;position:relative!important;z-index:2}}</style>
+<script>
+const fitOptions=(start,end,pad=false)=>Array.from({length:end-start+1},(_,i)=>`<option value="${pad?String(i+start).padStart(2,'0'):i+start}"></option>`).join('');
+person=()=>`<h2>提出者情報の入力</h2><label class=field>学年<input id=grade inputmode=numeric maxlength=1 list=fitGrades value="${info.grade}" placeholder="1〜9"></label><label class=field>クラス<input id=group inputmode=numeric maxlength=1 list=fitClasses value="${info.group}" placeholder="1〜9"></label><label class=field>番号<input id=number inputmode=numeric maxlength=2 list=fitNumbers value="${info.number}" placeholder="01〜99"></label><datalist id=fitGrades>${fitOptions(1,9)}</datalist><datalist id=fitClasses>${fitOptions(1,9)}</datalist><datalist id=fitNumbers>${fitOptions(1,99,true)}</datalist><label class=field>氏名<input id=personName value="${info.name==='ガチャポン太郎'?'':info.name}" placeholder="ガチャポン太郎"></label><button class="btn next" onclick="set('report')">次へ</button><div class=status>候補からの選択または半角数字で入力できます。番号は1桁入力時に2桁へ補正されます。</div>`;
+</script>
+<script>document.querySelector('[data-s="report"] small').textContent='立体の拡大率と向き、文章を入力';</script>
+<script>
+const visibleOptions=(start,end,pad=false)=>Array.from({length:end-start+1},(_,i)=>{const v=pad?String(i+start).padStart(2,'0'):String(i+start);return `<option value="${v}">${v}</option>`}).join('');
+person=()=>`<h2>提出者情報の入力</h2><label class=field>学年<input id=grade inputmode=numeric maxlength=1 list=gradeChoices value="${info.grade}" placeholder="1〜9"></label><label class=field>クラス<input id=group inputmode=numeric maxlength=1 list=classChoices value="${info.group}" placeholder="1〜9"></label><label class=field>番号<input id=number inputmode=numeric maxlength=2 list=numberChoices value="${info.number}" placeholder="01〜99"></label><datalist id=gradeChoices>${visibleOptions(1,9)}</datalist><datalist id=classChoices>${visibleOptions(1,9)}</datalist><datalist id=numberChoices>${visibleOptions(1,99,true)}</datalist><label class=field>氏名<input id=personName value="${info.name==='ガチャポン太郎'?'':info.name}" placeholder="ガチャポン太郎"></label><button class="btn next" onclick="set('report')">次へ</button><div class=status>候補からの選択または半角数字で入力できます。番号は1桁入力時に2桁へ補正されます。</div>`;
+</script>
+<style>.title .version{font-size:.46em;font-weight:600;color:#64748b;letter-spacing:0;margin-left:.38em;vertical-align:middle}</style>
+<script>document.querySelector('.title h1').insertAdjacentHTML('beforeend','<span class="version">v1.00</span>');</script>
+<style>.numberCombo{display:flex;gap:8px}.numberCombo input{flex:1}.numberCombo select{width:86px;border:1px solid var(--line);border-radius:9px;padding:8px;background:#fff;font:inherit;color:#475569}</style>
+<script>
+const selectOptions=(start,end,pad=false)=>`<option value="">選択</option>${Array.from({length:end-start+1},(_,i)=>{const v=pad?String(i+start).padStart(2,'0'):String(i+start);return `<option value="${v}">${v}</option>`}).join('')}`;
+person=()=>`<h2>提出者情報の入力</h2><label class=field>学年<div class=numberCombo><input id=grade inputmode=numeric maxlength=1 value="${info.grade}" placeholder="1〜9"><select id=gradePick>${selectOptions(1,9)}</select></div></label><label class=field>クラス<div class=numberCombo><input id=group inputmode=numeric maxlength=1 value="${info.group}" placeholder="1〜9"><select id=groupPick>${selectOptions(1,9)}</select></div></label><label class=field>番号<div class=numberCombo><input id=number inputmode=numeric maxlength=2 value="${info.number}" placeholder="01〜99"><select id=numberPick>${selectOptions(1,99,true)}</select></div></label><label class=field>氏名<input id=personName value="${info.name==='ガチャポン太郎'?'':info.name}" placeholder="ガチャポン太郎"></label><button class="btn next" onclick="set('report')">次へ</button><div class=status>リストから選ぶか、半角数字で直接入力してください。番号は1桁入力時に2桁へ補正されます。</div>`;
+document.addEventListener('change',e=>{const map={gradePick:'grade',groupPick:'group',numberPick:'number'};const target=map[e.target.id];if(target&&e.target.value){const input=$(target);input.value=e.target.value;input.dispatchEvent(new Event('input',{bubbles:true}))}});
+</script>
+<script>
+/* レポート上・操作枠上を含む画面全体でドロップを受け、ブラウザ標準のファイル表示を止める。 */
+window.addEventListener('dragover',event=>event.preventDefault(),true);
+window.addEventListener('drop',event=>{
+  event.preventDefault();event.stopPropagation();
+  const file=[...(event.dataTransfer?.files||[])].find(item=>/\.(stl|3mf)$/i.test(item.name));
+  if(file)read(file);
+},true);
+</script>
+<script>
+/* 読み込んだ3MFを未変更で再保存する場合だけ、確認して別名で出力する。 */
+let loaded3mfForResave=false,loaded3mfState='',loaded3mfStem='',resaveSerial=0,forceDistinctResave=false;
+function resaveState(){
+  return JSON.stringify({grade:info.grade,group:info.group,number:info.number,name:info.name,reference:info.reference,reflection:info.reflection,ortho:zooms[0],perspective:zooms[1],azimuth:isoAzimuth,elevation:isoElevation,target:[isoTarget.x,isoTarget.y,isoTarget.z]});
+}
+const fitBaseNameBeforeResave=fitBaseName;
+fitBaseName=()=>{
+  const base=fitBaseNameBeforeResave();
+  return forceDistinctResave&&base===loaded3mfStem?`${base}_再保存${++resaveSerial}`:base;
+};
+const readBeforeResaveTracking=read;
+read=async file=>{
+  await readBeforeResaveTracking(file);
+  if(!file)return;
+  loaded3mfForResave=/\.3mf$/i.test(file.name);
+  loaded3mfStem=loaded3mfForResave?file.name.replace(/\.3mf$/i,''):'';
+  resaveSerial=0;
+  setTimeout(()=>{loaded3mfState=resaveState()},500);
+};
+const makeBeforeResaveConfirmation=make;
+make=()=>{
+  const unchanged=loaded3mfForResave&&loaded3mfState&&loaded3mfState===resaveState();
+  if(unchanged&&!window.confirm('読み込んだ3MFは変更されていません。\n\n現在日時を使った新しいファイル名で、もう一度保存しますか。'))return;
+  forceDistinctResave=unchanged;
+  const result=makeBeforeResaveConfirmation();
+  forceDistinctResave=false;
+  return result;
+};
+</script>
+<script>
+/* アプリの表示名と版番号 */
+document.title='CADレポFIT';
+const appTitle=document.querySelector('.title h1');
+if(appTitle){
+  const version=appTitle.querySelector('.version');
+  appTitle.firstChild.nodeValue='CADレポFIT';
+  if(version)version.textContent='v1.01';
+}
+</script>
+<script>
+/* 3MFの読み込み後に自動フィットが走っても、保存済みのレポート設定を最後に復元する。 */
+const readBeforeFinalReportRestore=read;
+read=async file=>{
+  await readBeforeFinalReportRestore(file);
+  const restoreSavedReportView=()=>{
+    const view=info.reportView;
+    if(!view)return;
+    const ortho=Number(view.orthographicZoom);
+    const perspective=Number(view.perspectiveZoom);
+    if(Number.isFinite(ortho)){zooms[0]=ortho;zooms[2]=ortho}
+    if(Number.isFinite(perspective))zooms[1]=perspective;
+    const azimuth=Number(view.azimuth),elevation=Number(view.elevation);
+    if(Number.isFinite(azimuth)&&Number.isFinite(elevation)){isoAzimuth=azimuth;isoElevation=elevation}
+    if(view.position){
+      const x=Number(view.position.x),y=Number(view.position.y),z=Number(view.position.z);
+      if(Number.isFinite(x)&&Number.isFinite(y)&&Number.isFinite(z))isoTarget.set(x,y,z);
+    }
+    app.dataset.isoAutoFit='1';
+    app.dataset.viewTight='1';
+    app.dataset.orthoFit='1';
+    if(active==='report'){
+      const orthoSlider=$('orthoZoom'),perspectiveSlider=$('isoZoom');
+      if(orthoSlider)orthoSlider.value=zooms[0];
+      if(perspectiveSlider)perspectiveSlider.value=zooms[1];
+      views();
+    }
+  };
+  restoreSavedReportView();
+  setTimeout(restoreSavedReportView,350);
+};
+</script>
+<script>
+/* 最初の提出3MFを作った日時を、レポートの作成日時として固定して保存する。 */
+function now(){
+  const d=info.reportCreatedAt?new Date(info.reportCreatedAt):new Date();
+  const pad=n=>String(n).padStart(2,'0');
+  return `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+const makeWithFixedReportDate=make;
+make=()=>{
+  if(!info.reportCreatedAt)info.reportCreatedAt=new Date().toISOString();
+  return makeWithFixedReportDate();
+};
+</script>
+<script>
+/* レポートの必須項目がそろったら、画面はそのままで進行表示だけ④へ進める。 */
+const flowBeforeReadyIndicator=flow;
+flow=()=>{
+  flowBeforeReadyIndicator();
+  if(active!=='report')return;
+  const next=good()?'confirm':'report';
+  document.querySelectorAll('[data-s]').forEach(step=>step.classList.toggle('active',step.dataset.s===next));
+};
+</script>
+<script>
+/* STLには提出情報がないため、直前の3MFのレポート設定を持ち越さない。 */
+const readBeforeStlReset=read;
+read=async file=>{
+  if(file&&/\.stl$/i.test(file.name)){
+    for(const key of Object.keys(info))delete info[key];
+    Object.assign(info,{classNo:'',grade:'',group:'',number:'',name:'',reference:'',reflection:''});
+    zooms[0]=1.7;zooms[1]=1;zooms[2]=1.7;
+    isoAzimuth=-.78;isoElevation=.62;isoTarget.set(0,0,0);
+    delete app.dataset.orthoFit;
+    delete app.dataset.isoFit;
+    delete app.dataset.isoAutoFit;
+    delete app.dataset.viewTight;
+  }
+  return readBeforeStlReset(file);
+};
+</script>
+<script>
+/* 新しいSTLを開く前に、既存の提出内容を消去することを確認する。 */
+const readBeforeStlConfirmation=read;
+read=async file=>{
+  if(file&&/\.stl$/i.test(file.name)&&g){
+    const ok=window.confirm('新しいSTLファイルを読み込むと、これまでの提出者情報・レポート・表示設定はリセットされます。よろしいですか。');
+    if(!ok)return;
+  }
+  return readBeforeStlConfirmation(file);
+};
+</script>
+<style>
+@media print{
+  .diagramGrid .print-snapshot{display:block!important;width:100%!important;height:100%!important;object-fit:contain!important;object-position:center!important;background:#fff!important}
+}
+</style>
+<script>
+/* WebGLキャンバスを印刷可能なPNGへ置き換えてから、A4印刷を開始する。 */
+const nativeCadPrint=window.print.bind(window);
+let printSnapshots=[];
+function makePrintSnapshot(canvas,index){
+  const rect=canvas.getBoundingClientRect();
+  const width=Math.max(80,Math.round(rect.width*2));
+  const height=Math.max(80,Math.round(rect.height*2));
+  const source=document.createElement('canvas');
+  const renderer=new THREE.WebGLRenderer({canvas:source,antialias:true,preserveDrawingBuffer:true});
+  renderer.setPixelRatio(1);renderer.setSize(width,height,false);renderer.setClearColor(0xffffff,1);
+  let camera;
+  if(index===1){
+    camera=new THREE.PerspectiveCamera(35,width/height,.1,100);camera.up.set(0,0,1);
+    const distance=9/(zooms[1]||1);
+    camera.position.copy(isoTarget).add(new THREE.Vector3(Math.cos(isoAzimuth)*Math.cos(isoElevation)*distance,Math.sin(isoAzimuth)*Math.cos(isoElevation)*distance,Math.sin(isoElevation)*distance));
+    camera.lookAt(isoTarget);
+  }else{
+    const scale=3.1/(zooms[0]||1),ratio=width/height;
+    camera=new THREE.OrthographicCamera(-scale*ratio,scale*ratio,scale,-scale,.1,100);camera.up.set(0,0,1);
+    if(index===0)camera.position.set(0,0,8);
+    if(index===2)camera.position.set(0,-8,0);
+    if(index===3)camera.position.set(8,0,0);
+    camera.lookAt(0,0,0);
+  }
+  renderer.render(sc,camera);
+  const url=source.toDataURL('image/png');
+  renderer.dispose();
+  return url;
+}
+function restorePrintSnapshots(){
+  if(!printSnapshots.length)return;
+  for(const {image,canvas} of printSnapshots)image.replaceWith(canvas);
+  printSnapshots=[];
+  if(active==='report')setTimeout(views,0);
+}
+addEventListener('afterprint',restorePrintSnapshots);
+window.print=()=>{
+  if(active==='report'){
+    printSnapshots=[];
+    document.querySelectorAll('.diagramGrid canvas').forEach(canvas=>{
+      const index=Number(canvas.id.replace('v',''));
+      const image=new Image();
+      image.className='print-snapshot';image.alt='立体図';
+      image.src=makePrintSnapshot(canvas,index);
+      image.style.width='100%';image.style.height='100%';image.style.objectFit='contain';
+      printSnapshots.push({image,canvas});canvas.replaceWith(image);
+    });
+  }
+  nativeCadPrint();
+};
+</script>
+<script>
+/* PNGのデコード完了を待ってから印刷する（未読込の空枠を防ぐ）。 */
+window.print=async()=>{
+  if(active!=='report'){nativeCadPrint();return}
+  restorePrintSnapshots();
+  const ready=[];
+  document.querySelectorAll('.diagramGrid canvas').forEach(canvas=>{
+    const index=Number(canvas.id.replace('v',''));
+    const image=new Image();
+    image.className='print-snapshot';image.alt='立体図';
+    image.src=makePrintSnapshot(canvas,index);
+    image.style.width='100%';image.style.height='100%';image.style.objectFit='contain';
+    printSnapshots.push({image,canvas});canvas.replaceWith(image);
+    ready.push(image.decode().catch(()=>{}));
+  });
+  await Promise.all(ready);
+  await new Promise(requestAnimationFrame);
+  nativeCadPrint();
+};
+</script>
+<script>
+/* ファイル生成の完了後に、アプリ内で提出作業を案内する。 */
+function showSubmissionNotice(fileName){
+  const veil=document.createElement('div');
+  veil.style.cssText='position:fixed;inset:0;z-index:9999;display:grid;place-items:center;background:#17203355;padding:20px';
+  const panel=document.createElement('section');
+  panel.style.cssText='width:min(430px,100%);padding:26px;border-radius:18px;background:#fff;color:#172033;box-shadow:0 18px 50px #17203355;font:15px/1.7 system-ui,"Yu Gothic",sans-serif';
+  panel.innerHTML=`<p style="margin:0 0 12px;font-weight:700;font-size:18px">提出用3MFファイルを保存しました。</p><p style="margin:0 0 10px">ファイル名：<strong>${fileName}</strong></p><p style="margin:0 0 18px">保存先は通常は「ダウンロード」です。<br>このファイルを提出先の共有フォルダへアップロードして提出してください。</p><div style="display:grid;gap:9px"><button type="button" data-choice="same" style="border:0;border-radius:9px;padding:10px 14px;background:#2563eb;color:#fff;font-weight:700;cursor:pointer">再度この報告書を編集する</button><button type="button" data-choice="other" style="border:1px solid #2563eb;border-radius:9px;padding:10px 14px;background:#fff;color:#1d4ed8;font-weight:700;cursor:pointer">別の報告書を編集する</button><button type="button" data-choice="exit" style="border:1px solid #dc2626;border-radius:9px;padding:10px 14px;background:#fff;color:#dc2626;font-weight:700;cursor:pointer">このアプリを終了する</button></div>`;
+  panel.querySelector('[data-choice="same"]').onclick=()=>veil.remove();
+  panel.querySelector('[data-choice="other"]').onclick=()=>{veil.remove();location.reload()};
+  panel.querySelector('[data-choice="exit"]').onclick=()=>{veil.remove();window.close();setTimeout(()=>{const end=document.createElement('div');end.style.cssText='position:fixed;inset:0;z-index:10000;display:grid;place-items:center;background:#eef2f7;color:#172033;font:18px/1.7 system-ui,"Yu Gothic",sans-serif;text-align:center';end.innerHTML='アプリを終了します。<br>このタブまたはウインドウを閉じてください。';document.body.append(end)},300)};
+  veil.append(panel);document.body.append(veil);
+}
+make=async()=>{
+  if(!good())return;
+  if(!info.reportCreatedAt)info.reportCreatedAt=new Date().toISOString();
+  info.reportView={perspectiveZoom:zooms[1],orthographicZoom:zooms[0],azimuth:isoAzimuth,elevation:isoElevation,position:{x:isoTarget.x,y:isoTarget.y,z:isoTarget.z}};
+  const fileName=`${fitBaseName()}.3MF`,zip=new JSZip();
+  zip.file('[Content_Types].xml','<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="model" ContentType="application/vnd.ms-package.3dmanufacturing-3dmodel+xml"/><Default Extension="json" ContentType="application/json"/></Types>');
+  zip.file('_rels/.rels','<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Target="/3D/3dmodel.model" Id="r" Type="http://schemas.microsoft.com/3dmanufacturing/2013/01/3dmodel"/></Relationships>');
+  zip.file('3D/3dmodel.model',xml());
+  const {classNo,grade,group,number,name,...reportMetadata}=info;
+  zip.file('Metadata/CAD課題FIT.json',JSON.stringify({...reportMetadata,zooms},null,2));
+  const link=document.createElement('a');link.href=URL.createObjectURL(await zip.generateAsync({type:'blob'}));link.download=fileName;link.click();
+  setTimeout(()=>URL.revokeObjectURL(link.href),5000);
+  await new Promise(resolve=>setTimeout(resolve,1500));
+  showSubmissionNotice(fileName);
+};
+</script>
+<style>
+.persp{position:relative!important}.perspectiveHint{position:absolute;z-index:6;left:50%;top:50%;transform:translate(-50%,-50%);padding:10px 18px;border:1px solid #7dd3fc;border-radius:22px;background:#e0f2fecc;color:#0369a1;box-shadow:0 4px 12px #0369a133;font:700 17px/1.25 system-ui,"Yu Gothic",sans-serif;white-space:nowrap;pointer-events:none}.perspectiveHint:after{content:'';position:absolute;left:50%;bottom:-8px;width:14px;height:14px;background:#e0f2fecc;border-right:1px solid #7dd3fc;border-bottom:1px solid #7dd3fc;transform:translateX(-50%) rotate(45deg)}@media print{.perspectiveHint{display:none!important}}
+</style>
+<script>
+function addPerspectiveHint(){const box=drawer.querySelector('.persp');const canvas=$('v1');if(!box||!canvas||box.querySelector('.perspectiveHint'))return;const hint=document.createElement('div');hint.className='perspectiveHint';hint.textContent='大きさと向きを調整しよう！';box.append(hint);let start=null;const hide=()=>hint.remove();canvas.addEventListener('wheel',hide,{once:true,passive:true});canvas.addEventListener('pointerdown',event=>{start=[event.clientX,event.clientY]},{passive:true});canvas.addEventListener('pointermove',event=>{if(start&&Math.hypot(event.clientX-start[0],event.clientY-start[1])>4)hide()},{passive:true});canvas.addEventListener('pointerup',()=>{start=null},{passive:true})}
+const setBeforePerspectiveHint=set;set=s=>{setBeforePerspectiveHint(s);if(s==='report')setTimeout(addPerspectiveHint,100)};
+function finishCadFit(){const warning=hasSavedReport?'':'\n\nまだ提出用3MFを保存していません。';if(!window.confirm(`本当にアプリを終了しますか。${warning}`))return;document.body.innerHTML='<main style="height:100vh;display:grid;place-items:center;background:#eef2f7;color:#172033;font:20px/1.7 system-ui,\'Yu Gothic\',sans-serif;text-align:center">CAD課題FITを終了しました。<br><small style="font-size:14px;color:#64748b">このタブまたはウインドウを閉じてください。</small></main>';setTimeout(()=>window.close(),50)}
+exitFlowStep.onclick=finishCadFit;
+</script>
+<script>
+function showExitConfirmation(){const veil=document.createElement('div');veil.style.cssText='position:fixed;inset:0;z-index:10000;display:grid;place-items:center;background:#17203377;padding:20px';const panel=document.createElement('section');panel.style.cssText='width:min(410px,100%);padding:28px;border-radius:18px;background:#fff;color:#172033;box-shadow:0 18px 50px #17203355;font:16px/1.6 system-ui,"Yu Gothic",sans-serif';const title=document.createElement('h2');title.textContent='本当にアプリを終了しますか？';title.style.cssText='margin:0 0 12px;font-size:21px';const note=document.createElement('p');note.textContent=hasSavedReport?'作業を終了します。':'まだ提出用3MFを保存していません。';note.style.cssText='margin:0 0 22px;color:#475569';const cancel=document.createElement('button');cancel.type='button';cancel.textContent='終了しない';cancel.style.cssText='border:1px solid #2563eb;border-radius:10px;padding:10px 16px;background:#fff;color:#2563eb;font-weight:700;cursor:pointer';cancel.onclick=()=>veil.remove();const finish=document.createElement('button');finish.type='button';finish.textContent='終了する';finish.style.cssText='border:1px solid #dc2626;border-radius:10px;padding:10px 16px;background:#fff;color:#dc2626;font-weight:700;cursor:pointer;margin-left:10px';finish.onclick=()=>{document.body.innerHTML='<main style="height:100vh;display:grid;place-items:center;background:#eef2f7;color:#172033;font:20px/1.7 system-ui,\'Yu Gothic\',sans-serif;text-align:center">CAD課題FITを終了しました。<br><small style="font-size:14px;color:#64748b">このタブまたはウインドウを閉じてください。</small></main>';setTimeout(()=>window.close(),50)};panel.append(title,note,cancel,finish);veil.append(panel);document.body.append(veil)}
+const exitButtonWithConfirmation=document.querySelector('.step.exit');exitButtonWithConfirmation.addEventListener('click',event=>{event.preventDefault();event.stopImmediatePropagation();showExitConfirmation()},true);
+</script>
+<script>
+/* 提出者情報は3MF内部ではなく、ガチャポンFIT互換のファイル名から復元する。 */
+const readBeforeFileNameIdentity=read;
+read=async file=>{
+  await readBeforeFileNameIdentity(file);
+  if(!file||!/\.3mf$/i.test(file.name))return;
+  const stem=file.name.replace(/\.3mf$/i,'');
+  const match=stem.match(/^([1-9])([1-9])(\d{2})_\d{8}_\d{4}(?:_(.*))?$/);
+  if(!match)return;
+  const [,grade,group,number,name='']=match;
+  Object.assign(info,{grade,group,number,name,classNo:`${grade}年${group}組${number}番`});
+  flow();
+  if(active==='person')set('person');
+};
+</script>
+<style>.operation .btn{display:none!important}</style>
+<script>
+document.querySelector('[data-s="person"] span:nth-child(2) small').textContent='学年・クラス・番号・氏名';
+const saveStep=document.querySelector('[data-s="confirm"]');
+saveStep.addEventListener('click',event=>{event.stopImmediatePropagation();event.preventDefault();if(event.shiftKey)window.print();else make()},true);
+</script>
+<script>
+document.querySelector('[data-s="model"] span:nth-child(2)').firstChild.data='立体データを読み込む';
+const makeWithReportMetadata=make;make=()=>{info.reportView={perspectiveZoom:zooms[1],orthographicZoom:zooms[0],azimuth:isoAzimuth,elevation:isoElevation,position:{x:isoTarget.x,y:isoTarget.y,z:isoTarget.z}};makeWithReportMetadata()};
+const readWithReportMetadata=read;read=async file=>{await readWithReportMetadata(file);const v=info.reportView;if(v){zooms[0]=v.orthographicZoom||zooms[0];zooms[2]=zooms[0];zooms[1]=v.perspectiveZoom||zooms[1];if(Number.isFinite(v.azimuth))isoAzimuth=v.azimuth;if(Number.isFinite(v.elevation))isoElevation=v.elevation;if(v.position)isoTarget.set(v.position.x||0,v.position.y||0,v.position.z||0);app.dataset.isoAutoFit='1';app.dataset.viewTight='1';app.dataset.orthoFit='1'}};
+</script>
+<style>@media print{.persp{padding:5mm 0!important}.persp canvas{width:100%!important;height:100%!important}}</style>
+<script>
+function submissionFileName(){return `${info.classNo||'学年クラス番号'}_${info.name||'氏名'}_${stamp()}`}
+let titleBeforePrint='';window.addEventListener('beforeprint',()=>{titleBeforePrint=document.title;document.title=submissionFileName();views()});window.addEventListener('afterprint',()=>{document.title=titleBeforePrint||'CAD課題FIT'});
+</script>
+<style>#personName::placeholder{color:#94a3b8;opacity:1}</style>
+<script>
+person=()=>`<h2>提出者情報の入力</h2><label class=field>学年<input id=grade inputmode=numeric maxlength=1 value="${info.grade}" placeholder="1〜9"></label><label class=field>クラス<input id=group inputmode=numeric maxlength=1 value="${info.group}" placeholder="1〜9"></label><label class=field>番号<input id=number inputmode=numeric maxlength=2 value="${info.number}" placeholder="01〜99"></label><label class=field>氏名<input id=personName value="${info.name==='ガチャポン太郎'?'':info.name}" placeholder="ガチャポン太郎"></label><button class="btn next" onclick="set('report')">次へ</button><div class=status>学年・クラス・番号は半角数字で入力してください。</div>`;
+const oldStep=document.querySelector('[data-s="confirm"]'),newStep=oldStep.cloneNode(true);oldStep.replaceWith(newStep);
+function stepLabel(pdf){newStep.querySelector('span:nth-child(2)').firstChild.data=pdf?'CAD課題報告書の印刷':'提出用3MF保存'}
+function missingFields(){const rows=[];if(!/^[1-9]$/.test(info.grade))rows.push('学年');if(!/^[1-9]$/.test(info.group))rows.push('クラス');if(!/^(?:0[1-9]|[1-9][0-9])$/.test(info.number))rows.push('番号');if(!info.name||info.name==='ガチャポン太郎')rows.push('氏名');if(!info.reference.trim())rows.push('参考にしたもの');if(!info.reflection.trim())rows.push('気づいたこと・考えたこと');return rows}
+newStep.addEventListener('click',e=>{e.preventDefault();const missing=missingFields();if(missing.length){alert(`次の項目を入力してください。\n\n・${missing.join('\n・')}`);return}if(e.shiftKey)window.print();else make()});
+addEventListener('keydown',e=>{if(e.key==='Shift')stepLabel(true)});addEventListener('keyup',e=>{if(e.key==='Shift')stepLabel(false)});addEventListener('blur',()=>stepLabel(false));
+</script>
+<style>.diagramGrid{grid-template-rows:calc(var(--inner) * .566) var(--cell) 1fr;height:calc(100% - 150px)}.persp{justify-self:stretch;align-self:stretch}</style>
+<style>.numberCombo{display:flex!important;gap:8px}.numberCombo input{flex:1}.numberCombo select{display:block!important;width:86px!important;border:1px solid var(--line)!important;border-radius:9px!important;padding:8px!important;background:#fff!important;font:inherit!important;color:#475569!important}.drawer.person-mode{left:50%!important;right:auto!important;top:50%!important;transform:translate(-50%,-50%)!important;width:min(430px,calc(100vw - 32px))!important}@media screen{.drawer.report-mode{max-height:calc(100vh - 24px)!important;overflow:auto!important}.drawer.report-mode .a4{min-width:690px!important;min-height:918px!important}.operation{position:fixed!important;left:calc(50% - 530px)!important;right:auto!important;top:max(16px,calc(50% - 460px))!important;transform:none!important}}</style>
+<style>
+.operation{position:absolute!important;left:auto!important;right:calc(100% + 13px)!important;top:0!important;transform:none!important;z-index:40!important}
+@media(max-width:900px){.operation{position:static!important;transform:none!important;margin:10px!important}}
+</style>
+<script>
+const finalOptions=(start,end,pad=false)=>`<option value="">選択</option>${Array.from({length:end-start+1},(_,i)=>{const v=pad?String(i+start).padStart(2,'0'):String(i+start);return `<option value="${v}">${v}</option>`}).join('')}`;
+document.querySelector('.guide').textContent='STLファイルまたは3MFファイルを、画面上にドラッグ＆ドロップしてください。';
+function finishCadFit(){document.body.innerHTML='<main style="height:100vh;display:grid;place-items:center;background:#eef2f7;color:#172033;font:20px/1.7 system-ui,\'Yu Gothic\',sans-serif;text-align:center">CAD課題FITを終了しました。<br><small style="font-size:14px;color:#64748b">このタブまたはウインドウを閉じてください。</small></main>';setTimeout(()=>window.close(),50)}
+const exitFlowStep=document.createElement('button');exitFlowStep.type='button';exitFlowStep.className='step exit';exitFlowStep.innerHTML='<span class="n">5</span><span>アプリを終了する<small>作業を終了</small></span>';exitFlowStep.onclick=finishCadFit;document.querySelector('.flow').insertBefore(exitFlowStep,$('save'));
+const exitArrow=document.createElement('div');exitArrow.textContent='↓';exitArrow.style.cssText='margin:-17px 0;color:#94a3b8;text-align:center;font:900 21px/1 system-ui,sans-serif';document.querySelector('.flow').insertBefore(exitArrow,exitFlowStep);
+const exitFlowStyle=document.createElement('style');exitFlowStyle.textContent='.step[data-s="confirm"]:after,.step.exit:after{display:none!important}';document.head.append(exitFlowStyle);
+document.querySelector('[data-s="confirm"] small').textContent='CAD課題報告書を保存する';
+const reportScrollStyle=document.createElement('style');reportScrollStyle.textContent='@media screen{.drawer.report-mode{height:calc(100vh - 108px)!important;max-height:none!important;overflow:auto!important}.drawer.report-mode .a4{width:690px!important;min-width:690px!important;height:760px!important;min-height:760px!important}.drawer.report-mode .persp{aspect-ratio:auto!important;height:auto!important;align-self:stretch!important}.drawer.report-mode .persp canvas{width:100%!important;height:100%!important;aspect-ratio:auto!important}}';document.head.append(reportScrollStyle);
+const reportPlacementStyle=document.createElement('style');reportPlacementStyle.textContent='@media screen{.drawer.report-mode{top:90px!important;transform:translateX(-50%)!important}}';document.head.append(reportPlacementStyle);
+const operationPortalStyle=document.createElement('style');operationPortalStyle.textContent='@media screen{#reportOperationPortal{position:fixed;z-index:80;left:calc(50% - 531px);top:90px;width:170px}#reportOperationPortal .operation{position:static!important;width:170px!important;margin:0!important;box-sizing:border-box}@media(max-width:900px){#reportOperationPortal{display:none!important}}}';document.head.append(operationPortalStyle);
+const setBeforeOperationPortal=set;set=s=>{document.getElementById('reportOperationPortal')?.remove();setBeforeOperationPortal(s);if(s==='report'){const operation=drawer.querySelector('.operation');if(operation){const portal=document.createElement('div');portal.id='reportOperationPortal';portal.append(operation);document.body.append(portal)}}};
+const setBeforePersonCenter=set;set=s=>{setBeforePersonCenter(s);drawer.classList.toggle('person-mode',s==='person')};
+function updateStep4Label(printMode){const step=document.querySelector('[data-s="confirm"]');const text=step?.querySelector('span:nth-child(2)');if(!text)return;const title=printMode?'報告書を印刷':'提出用3MF保存';const first=[...text.childNodes].find(node=>node.nodeType===Node.TEXT_NODE);if(first)first.nodeValue=title;else text.prepend(document.createTextNode(title));}
+window.addEventListener('keydown',event=>{if(event.key==='Shift')updateStep4Label(true)},true);
+window.addEventListener('keyup',event=>{if(event.key==='Shift')updateStep4Label(false)},true);
+window.addEventListener('blur',()=>updateStep4Label(false));
+const viewsBeforeOrthoGestures=views;
+let reportPreviewScale=1,reportBaseWidth=690;
+function fitReportSheet(){const safeRight=window.innerWidth-285;const viewportWidth=Math.max(400,safeRight-32);reportPreviewScale=1;reportBaseWidth=690;app.style.setProperty('--report-viewport-width',`${viewportWidth}px`);app.style.setProperty('--report-screen-left',`${Math.max(16,Math.round((safeRight-viewportWidth)/2))}px`);app.style.setProperty('--report-preview-zoom',1)}
+const reportResponsiveStyle=document.createElement('style');reportResponsiveStyle.textContent='@media screen{#app.report-open>#main{visibility:hidden!important}.drawer.report-mode{left:var(--report-screen-left,16px)!important;right:auto!important;top:14px!important;transform:none!important;width:var(--report-viewport-width,690px)!important;height:calc(100vh - 28px)!important;overflow:auto!important}.drawer.report-mode .a4{width:690px!important;min-width:690px!important;height:976px!important;min-height:976px!important;aspect-ratio:210 / 297!important;margin:0!important;zoom:1!important;transform-origin:top left!important}.diagramGrid label,.diagramGrid textarea{font-size:13px!important}#reportZoomStage{position:relative;margin:0 auto}#reportOperationPortal{display:none!important}}';document.head.append(reportResponsiveStyle);
+const setBeforeResponsiveSheet=set;set=s=>{if(s==='report')fitReportSheet();setBeforeResponsiveSheet(s)};
+window.addEventListener('resize',()=>{if(active==='report'){fitReportSheet();setTimeout(views,0)}});
+function applyReportPreviewScale(){const paper=drawer.querySelector('.a4');if(!paper)return;let stage=document.getElementById('reportZoomStage');if(!stage){stage=document.createElement('div');stage.id='reportZoomStage';paper.before(stage);stage.append(paper)}const scale=reportPreviewScale,baseWidth=reportBaseWidth,baseHeight=baseWidth*297/210;paper.style.setProperty('width',`${baseWidth}px`,'important');paper.style.setProperty('min-width',`${baseWidth}px`,'important');paper.style.setProperty('height',`${baseHeight}px`,'important');paper.style.setProperty('min-height',`${baseHeight}px`,'important');paper.style.setProperty('transform',`scale(${scale})`,'important');stage.style.width=`${baseWidth*scale}px`;stage.style.height=`${baseHeight*scale}px`}
+function installReportPreviewControl(){const portal=document.getElementById('reportOperationPortal');if(!portal)return;portal.innerHTML=`<aside class="operation"><label>表示サイズ<input id="reportPreviewScale" type="range" min=".55" max="2" step=".01" value="${reportPreviewScale}"></label></aside>`;const slider=$('reportPreviewScale');slider.oninput=event=>{reportPreviewScale=+event.target.value;fitReportSheet();applyReportPreviewScale()}}
+const setBeforePreviewControl=set;set=s=>{setBeforePreviewControl(s);if(s==='report'){installReportPreviewControl();applyReportPreviewScale()}};
+const reportSheetSurfaceStyle=document.createElement('style');reportSheetSurfaceStyle.textContent='@media screen{.drawer.report-mode{background:transparent!important;box-shadow:none!important}.drawer.report-mode .a4{background:#fff!important;box-shadow:0 12px 30px #33415522}}';document.head.append(reportSheetSurfaceStyle);
+document.addEventListener('input',event=>{if(event.target?.id==='reportPreviewScale'){reportPreviewScale=+event.target.value;fitReportSheet();applyReportPreviewScale()}},true);
+let reportResizeTimer=0;
+window.addEventListener('resize',()=>{if(active!=='report')return;clearTimeout(reportResizeTimer);reportResizeTimer=setTimeout(()=>{fitReportSheet();applyReportPreviewScale();views()},80)});
+function changeOrthoZoom(multiplier){zooms[0]=Math.max(.1,Math.min(12,zooms[0]*multiplier));zooms[2]=zooms[0];const slider=$('orthoZoom');if(slider)slider.value=Math.min(8,zooms[0]);views()}
+views=()=>{viewsBeforeOrthoGestures();if(active!=='report')return;[0,2,3].forEach(index=>{const canvas=$('v'+index);if(!canvas||canvas._orthoGestureWired)return;canvas._orthoGestureWired=true;canvas.style.touchAction='none';let pointers=new Map(),previousDistance=0;canvas.addEventListener('wheel',event=>{event.preventDefault();changeOrthoZoom(event.deltaY>0?.88:1.14)},{passive:false});canvas.addEventListener('pointerdown',event=>{pointers.set(event.pointerId,[event.clientX,event.clientY]);canvas.setPointerCapture(event.pointerId)});canvas.addEventListener('pointermove',event=>{if(!pointers.has(event.pointerId))return;pointers.set(event.pointerId,[event.clientX,event.clientY]);const points=[...pointers.values()];if(points.length===2){event.preventDefault();const distance=Math.hypot(points[0][0]-points[1][0],points[0][1]-points[1][1]);if(previousDistance)changeOrthoZoom(distance/previousDistance);previousDistance=distance}});const end=event=>{pointers.delete(event.pointerId);if(pointers.size<2)previousDistance=0};canvas.addEventListener('pointerup',end);canvas.addEventListener('pointercancel',end)})};
+function showMissingFieldDialog(rows){
+  const veil=document.createElement('div');
+  veil.style.cssText='position:fixed;inset:0;z-index:9999;display:grid;place-items:center;background:#17203355;padding:20px';
+  const panel=document.createElement('section');
+  panel.style.cssText='width:min(410px,100%);padding:26px;border-radius:18px;background:#fff;color:#172033;box-shadow:0 18px 50px #17203355;font:16px/1.65 system-ui,"Yu Gothic",sans-serif';
+  const heading=document.createElement('p');heading.textContent='次の項目が未入力です。';heading.style.cssText='margin:0 0 14px;font-size:18px;font-weight:700';
+  const list=document.createElement('ul');list.style.cssText='margin:0 0 20px;padding-left:1.35em';rows.forEach(row=>{const item=document.createElement('li');item.textContent=row;list.append(item)});
+  const close=document.createElement('button');close.type='button';close.textContent='OK';close.style.cssText='float:right;border:0;border-radius:9px;padding:8px 20px;background:#2563eb;color:#fff;font-weight:700;cursor:pointer';close.onclick=()=>veil.remove();
+  panel.append(heading,list,close);veil.append(panel);document.body.append(veil);
+}
+const centeredConfirmStep=newStep.cloneNode(true);newStep.replaceWith(centeredConfirmStep);
+centeredConfirmStep.addEventListener('click',event=>{event.preventDefault();const missing=missingFields();if(missing.length){showMissingFieldDialog(missing);return}if(event.shiftKey)window.print();else make()});
+person=()=>`<h2>提出者情報の入力</h2><label class=field>学年<div class=numberCombo><input id=grade inputmode=numeric maxlength=1 value="${info.grade}" placeholder="1〜9"><select id=gradePick>${finalOptions(1,9)}</select></div></label><label class=field>クラス<div class=numberCombo><input id=group inputmode=numeric maxlength=1 value="${info.group}" placeholder="1〜9"><select id=groupPick>${finalOptions(1,9)}</select></div></label><label class=field>番号<div class=numberCombo><input id=number inputmode=numeric maxlength=2 value="${info.number}" placeholder="01〜99"><select id=numberPick>${finalOptions(1,99,true)}</select></div></label><label class=field>氏名<input id=personName value="${info.name==='ガチャポン太郎'?'':info.name}" placeholder="ガチャポン太郎"></label><button class="btn next" onclick="set('report')">次へ</button><div class=status>リストから選ぶか、半角数字で直接入力してください。番号は1桁入力時に2桁へ補正されます。</div>`;
+document.addEventListener('change',e=>{const map={gradePick:'grade',groupPick:'group',numberPick:'number'};const target=map[e.target.id];if(target&&e.target.value){const input=$(target);input.value=e.target.value;input.dispatchEvent(new Event('input',{bubbles:true}))}});
+</script>
+<script>
+/* 読み込んだ3MFを未変更で再保存する場合だけ、確認して別名で出力する。 */
+let finalLoaded3mf=false,finalLoadedState='',finalLoadedStem='',finalResaveSerial=0,finalForceDistinct=false;
+function finalResaveState(){return JSON.stringify({grade:info.grade,group:info.group,number:info.number,name:info.name,reference:info.reference,reflection:info.reflection,ortho:zooms[0],perspective:zooms[1],azimuth:isoAzimuth,elevation:isoElevation,target:[isoTarget.x,isoTarget.y,isoTarget.z]})}
+const finalFitBaseName=fitBaseName;
+fitBaseName=()=>{const base=finalFitBaseName();return finalForceDistinct&&base===finalLoadedStem?`${base}_再保存${++finalResaveSerial}`:base};
+const finalReadForResave=read;
+read=async file=>{await finalReadForResave(file);if(!file)return;hasSavedReport=false;finalLoaded3mf=/\.3mf$/i.test(file.name);finalLoadedStem=finalLoaded3mf?file.name.replace(/\.3mf$/i,''):'';finalResaveSerial=0;setTimeout(()=>{finalLoadedState=finalResaveState()},600)};
+let finalSaving=false,hasSavedReport=false;
+make=async()=>{
+  if(finalSaving||!good())return;
+  const unchanged=finalLoaded3mf&&finalLoadedState&&finalLoadedState===finalResaveState();
+  if(unchanged&&!window.confirm('読み込んだ3MFは変更されていません。\n\n現在日時を使った新しいファイル名で、もう一度保存しますか。'))return;
+  finalSaving=true;
+  try{
+    if(!info.reportCreatedAt)info.reportCreatedAt=new Date().toISOString();
+    info.reportView={perspectiveZoom:zooms[1],orthographicZoom:zooms[0],azimuth:isoAzimuth,elevation:isoElevation,position:{x:isoTarget.x,y:isoTarget.y,z:isoTarget.z}};
+    const base=fitBaseName();
+    const outputBase=unchanged&&base===finalLoadedStem?`${base}_再保存${++finalResaveSerial}`:base;
+    const fileName=`${outputBase}.3MF`,zip=new JSZip();
+    zip.file('[Content_Types].xml','<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="model" ContentType="application/vnd.ms-package.3dmanufacturing-3dmodel+xml"/><Default Extension="json" ContentType="application/json"/></Types>');
+    zip.file('_rels/.rels','<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Target="/3D/3dmodel.model" Id="r" Type="http://schemas.microsoft.com/3dmanufacturing/2013/01/3dmodel"/></Relationships>');
+    zip.file('3D/3dmodel.model',xml());
+    const {classNo,grade,group,number,name,...reportMetadata}=info;
+    zip.file('Metadata/CAD課題FIT.json',JSON.stringify({...reportMetadata,zooms},null,2));
+    const blob=await zip.generateAsync({type:'blob'});
+    const link=document.createElement('a');link.href=URL.createObjectURL(blob);link.download=fileName;link.click();hasSavedReport=true;
+    setTimeout(()=>URL.revokeObjectURL(link.href),5000);
+  }finally{finalSaving=false}
+};
+</script>
+<script>
+function showFinalExitConfirmation(){const veil=document.createElement('div');veil.style.cssText='position:fixed;inset:0;z-index:10001;display:grid;place-items:center;background:#17203377;padding:20px';const panel=document.createElement('section');panel.style.cssText='width:min(410px,100%);padding:28px;border-radius:18px;background:#fff;color:#172033;box-shadow:0 18px 50px #17203355;font:16px/1.6 system-ui,"Yu Gothic",sans-serif';const title=document.createElement('h2');title.textContent='本当にアプリを終了しますか？';title.style.cssText='margin:0 0 12px;font-size:21px';const note=document.createElement('p');note.textContent=hasSavedReport?'作業を終了します。':'まだ提出用3MFを保存していません。';note.style.cssText='margin:0 0 22px;color:#475569';const cancel=document.createElement('button');cancel.type='button';cancel.textContent='終了しない';cancel.style.cssText='border:1px solid #2563eb;border-radius:10px;padding:10px 16px;background:#fff;color:#2563eb;font-weight:700;cursor:pointer';cancel.onclick=()=>veil.remove();const finish=document.createElement('button');finish.type='button';finish.textContent='終了する';finish.style.cssText='border:1px solid #dc2626;border-radius:10px;padding:10px 16px;background:#fff;color:#dc2626;font-weight:700;cursor:pointer;margin-left:10px';finish.onclick=()=>{document.body.innerHTML='<main style="height:100vh;display:grid;place-items:center;background:#eef2f7;color:#172033;font:20px/1.7 system-ui,\'Yu Gothic\',sans-serif;text-align:center">CAD課題FITを終了しました。<br><small style="font-size:14px;color:#64748b">このタブまたはウインドウを閉じてください。</small></main>';setTimeout(()=>window.close(),50)};panel.append(title,note,cancel,finish);veil.append(panel);document.body.append(veil)}
+const finalExitButton=document.querySelector('.step.exit');finalExitButton.onclick=event=>{event.preventDefault();showFinalExitConfirmation()};
+</script>
+<style>
+/* 印刷時も、画面で見えているA4の組版と同じ比率を使う。古い印刷用指定をここで統一する。 */
+@page{size:A4 portrait;margin:0}
+@media print{
+  html,body,#app{width:210mm!important;height:297mm!important;min-width:210mm!important;min-height:297mm!important;overflow:hidden!important;background:#fff!important}
+  #app> :not(#drawer){display:none!important}
+  #drawer.drawer.report-mode{display:block!important;position:fixed!important;inset:0!important;width:210mm!important;height:297mm!important;max-width:none!important;max-height:none!important;overflow:hidden!important;transform:none!important;background:#fff!important;box-shadow:none!important}
+  #drawer .operation,#reportOperationPortal,.perspectiveHint{display:none!important}
+  #reportZoomStage{display:block!important;width:210mm!important;height:297mm!important;margin:0!important;transform:none!important}
+  #drawer .a4,#drawer .a4[style]{box-sizing:border-box!important;display:block!important;width:210mm!important;min-width:210mm!important;height:297mm!important;min-height:297mm!important;margin:0!important;padding:16mm 15mm 15mm 20mm!important;transform:none!important;zoom:1!important;box-shadow:none!important;aspect-ratio:auto!important}
+  .a4head{box-sizing:border-box!important;display:flex!important;align-items:center!important;justify-content:space-between!important;min-height:24mm!important;margin:0!important;padding:1mm 0 4mm!important}
+  .a4head h2{margin:0!important;font-size:18pt!important;text-align:left!important}
+  .a4date{margin:0!important;min-width:56mm!important;font-size:9pt!important;line-height:1.65!important}
+  .diagramGrid{box-sizing:border-box!important;--inner:175mm!important;--cell:53.4mm!important;display:grid!important;grid-template-columns:1fr 1fr 1.28fr!important;grid-template-rows:46% 25% 29%!important;gap:2.5mm!important;height:calc(100% - 44mm)!important;margin-top:10mm!important;overflow:hidden!important}
+  .diagramGrid>*{box-sizing:border-box!important;min-width:0!important;min-height:0!important;padding:1mm!important;background:#fff!important;overflow:hidden!important}
+  .persp{grid-column:1/-1!important;grid-row:1!important;padding:0!important;transform:none!important}
+  .plane{grid-column:1!important;grid-row:2!important;height:auto!important;aspect-ratio:auto!important}
+  .front{grid-column:1!important;grid-row:3!important}
+  .referenceBox{grid-column:2!important;grid-row:2!important;height:50%!important;align-self:start!important}
+  .side{grid-column:2!important;grid-row:3!important}
+  .reflectionBox{grid-column:3!important;grid-row:2/4!important;height:auto!important}
+  .diagramGrid canvas,.diagramGrid .print-snapshot{display:block!important;width:100%!important;height:calc(100% - 5mm)!important;max-width:100%!important;max-height:none!important;object-fit:contain!important;object-position:center!important;background:#fff!important}
+  .persp canvas,.persp .print-snapshot{height:100%!important}
+  .diagramGrid small{display:block!important;position:static!important;margin-top:.7mm!important;font-size:8pt!important;line-height:1.2!important;color:#172033!important;visibility:visible!important}
+  .diagramGrid label{display:block!important;font-size:8pt!important;line-height:1.2!important}
+  .diagramGrid textarea{box-sizing:border-box!important;width:100%!important;height:calc(100% - 5mm)!important;margin-top:.7mm!important;padding:1.2mm!important;font-size:8.5pt!important;line-height:1.45!important;overflow:hidden!important}
+}
+</style>
+<script>
+/* 印刷用PNGをA4寸法へ切り替えた後に作ることで、画面と印刷で図の倍率が変わらないようにする。 */
+const cadPrintBeforeLayout=window.print;
+let cadPrintOriginalPaperStyle='',cadPrintOriginalStageStyle='';
+function prepareCadPrintLayout(){
+  const paper=drawer.querySelector('.a4'),stage=document.getElementById('reportZoomStage');
+  if(!paper)return;
+  cadPrintOriginalPaperStyle=paper.getAttribute('style')||'';
+  cadPrintOriginalStageStyle=stage?.getAttribute('style')||'';
+  paper.style.setProperty('width','210mm','important');paper.style.setProperty('min-width','210mm','important');
+  paper.style.setProperty('height','297mm','important');paper.style.setProperty('min-height','297mm','important');
+  paper.style.setProperty('transform','none','important');paper.style.setProperty('padding','16mm 15mm 15mm 20mm','important');
+  if(stage){stage.style.setProperty('width','210mm','important');stage.style.setProperty('height','297mm','important');stage.style.setProperty('transform','none','important')}
+}
+function restoreCadPrintLayout(){
+  const paper=drawer.querySelector('.a4'),stage=document.getElementById('reportZoomStage');
+  if(paper)paper.setAttribute('style',cadPrintOriginalPaperStyle);
+  if(stage)stage.setAttribute('style',cadPrintOriginalStageStyle);
+  if(active==='report')setTimeout(()=>{applyReportPreviewScale();views()},0);
+}
+window.addEventListener('afterprint',restoreCadPrintLayout);
+window.print=async()=>{
+  if(active!=='report'){nativeCadPrint();return}
+  restorePrintSnapshots();
+  prepareCadPrintLayout();
+  await new Promise(requestAnimationFrame);await new Promise(requestAnimationFrame);
+  views();
+  await cadPrintBeforeLayout();
+};
+</script>
+<style>
+/* 下段の図と記入欄まで、必ずA4の印刷範囲内に収める。 */
+@media print{
+  .diagramGrid{height:219mm!important;grid-template-rows:100mm 43mm 66mm!important;margin-top:8mm!important;overflow:visible!important}
+  .plane,.front,.side,.referenceBox,.reflectionBox{overflow:visible!important}
+  .plane{grid-row:2!important}.front{grid-row:3!important}.side{grid-row:3!important}
+  .plane small,.front small,.side small{display:block!important;visibility:visible!important;height:4mm!important;margin-top:.8mm!important;white-space:nowrap!important}
+  .plane .print-snapshot,.front .print-snapshot,.side .print-snapshot,.plane canvas,.front canvas,.side canvas{height:calc(100% - 5mm)!important}
+  .reflectionBox{display:block!important;box-sizing:border-box!important;border:1px solid #94a3b8!important;border-radius:3mm!important;overflow:hidden!important}
+  .reflectionBox textarea{display:block!important;height:calc(100% - 5mm)!important;min-height:0!important;border:0!important;border-radius:0!important}
+}
+</style>
+<style>
+@media print{
+  .plane small{display:block!important;position:relative!important;visibility:visible!important;z-index:20!important;color:#172033!important}
+  .reflectionBox{border:0!important;border-radius:0!important;overflow:visible!important;padding:0!important}
+  .reflectionBox label{display:block!important;height:4mm!important;margin:0 0 .8mm!important;padding:0!important;line-height:4mm!important}
+  .reflectionBox textarea{height:calc(100% - 4.8mm)!important;border:1px solid #94a3b8!important;border-radius:3mm!important;padding:1.2mm!important}
+}
+</style>
+<script>
+/* 平面図も画面側と同じ「Y方向が上」のカメラで印刷PNGを作る。 */
+const makePrintSnapshotBeforeTopDirection=makePrintSnapshot;
+makePrintSnapshot=(canvas,index)=>{
+  if(index!==0)return makePrintSnapshotBeforeTopDirection(canvas,index);
+  const rect=canvas.getBoundingClientRect(),width=Math.max(80,Math.round(rect.width*2)),height=Math.max(80,Math.round(rect.height*2));
+  const source=document.createElement('canvas'),renderer=new THREE.WebGLRenderer({canvas:source,antialias:true,preserveDrawingBuffer:true});
+  renderer.setPixelRatio(1);renderer.setSize(width,height,false);renderer.setClearColor(0xffffff,1);
+  const front=$('v2'),topRatio=width/height,frontRatio=front?front.getBoundingClientRect().width/front.getBoundingClientRect().height:topRatio;
+  const halfHeight=3.1/(zooms[0]||1)*frontRatio/topRatio;
+  const camera=new THREE.OrthographicCamera(-halfHeight*topRatio,halfHeight*topRatio,halfHeight,-halfHeight,.1,100);
+  camera.up.set(0,1,0);camera.position.set(0,0,8);camera.lookAt(0,0,0);
+  const edge=g?new THREE.LineSegments(new THREE.EdgesGeometry(g,15),new THREE.LineBasicMaterial({color:0x1f2937})):null;
+  if(edge)sc.add(edge);renderer.render(sc,camera);if(edge){sc.remove(edge);edge.geometry.dispose();edge.material.dispose()}
+  const url=source.toDataURL('image/png');renderer.dispose();return url;
+};
+</script>
+<style>
+/* 考察欄は、用紙下段の高さを使い切らない3分の2の記入量にする。 */
+@media screen{
+  .reflectionBox{align-self:start!important;height:66.666%!important}
+}
+@media print{
+  .reflectionBox{align-self:start!important;height:74.3mm!important}
+}
+</style>
+<script>
+/* 3MFに保存した見せ方を、自動フィット処理より常に最後に復元する。 */
+const readBeforeFinalViewRestore=read;
+read=async file=>{
+  await readBeforeFinalViewRestore(file);
+  if(!file||!/\.3mf$/i.test(file.name))return;
+  const saved=info.reportView||{};
+  const savedOrtho=Number(saved.orthographicZoom??info.zooms?.[0]);
+  const savedPerspective=Number(saved.perspectiveZoom??info.zooms?.[1]);
+  const savedAzimuth=Number(saved.azimuth),savedElevation=Number(saved.elevation);
+  const restore=()=>{
+    if(Number.isFinite(savedOrtho)&&savedOrtho>0){zooms[0]=savedOrtho;zooms[2]=savedOrtho}
+    if(Number.isFinite(savedPerspective)&&savedPerspective>0)zooms[1]=savedPerspective;
+    if(Number.isFinite(savedAzimuth))isoAzimuth=savedAzimuth;
+    if(Number.isFinite(savedElevation))isoElevation=savedElevation;
+    if(saved.position){
+      const x=Number(saved.position.x),y=Number(saved.position.y),z=Number(saved.position.z);
+      if(Number.isFinite(x)&&Number.isFinite(y)&&Number.isFinite(z))isoTarget.set(x,y,z);
+    }
+    app.dataset.orthoFit='1';app.dataset.isoFit='1';app.dataset.isoAutoFit='1';app.dataset.viewTight='1';
+    if(active==='report')views();
+  };
+  restore();
+  requestAnimationFrame(restore);setTimeout(restore,250);setTimeout(restore,900);
+};
+</script>
