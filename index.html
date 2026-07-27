@@ -737,3 +737,64 @@ showFinalExitConfirmation=()=>{
   veil.append(panel);document.body.append(veil);
 };
 </script>
+<script>
+/* 提出情報を含む3MFは、読み込み完了後にレポート編集画面を直接開く。 */
+const readBeforeOpenSavedReport=read;
+read=async file=>{
+  await readBeforeOpenSavedReport(file);
+  if(!file||!/\.3mf$/i.test(file.name)||!g)return;
+  const containsReport=Boolean(info.reportView||info.reference||info.reflection);
+  if(containsReport)setTimeout(()=>set('report'),950);
+};
+const versionFor106=document.querySelector('.title h1 .version');
+if(versionFor106)versionFor106.textContent='v1.06';
+</script>
+<script>
+/* 文章を持たないデータを開く前に、現在の記入内容が消えることを確認する。 */
+async function incomingFileHasReportText(file){
+  if(!file||!/\.3mf$/i.test(file.name))return false;
+  try{
+    const zip=await JSZip.loadAsync(file),metadata=zip.file('Metadata/CAD課題FIT.json');
+    if(!metadata)return false;
+    const data=JSON.parse(await metadata.async('text'));
+    return Boolean(String(data.reference||'').trim()||String(data.reflection||'').trim());
+  }catch(error){return false}
+}
+const readBeforeReportTextLossCheck=read;
+read=async file=>{
+  const hasCurrentText=Boolean(String(info.reference||'').trim()||String(info.reflection||'').trim());
+  const incomingHasText=await incomingFileHasReportText(file);
+  let approvedTextLoss=false;
+  if(file&&hasCurrentText&&!incomingHasText){
+    const approved=window.confirm('読み込むファイルには「参考にしたもの」「気づいたこと・考えたこと」の入力内容がありません。\n\n現在入力している内容は消えます。読み込みを続けますか？');
+    if(!approved)return;
+    approvedTextLoss=true;
+  }
+  if(approvedTextLoss&&/\.stl$/i.test(file.name))window.__cadReportSkipLegacyStlConfirm=true;
+  try{return await readBeforeReportTextLossCheck(file)}finally{window.__cadReportSkipLegacyStlConfirm=false}
+};
+const versionFor107=document.querySelector('.title h1 .version');
+if(versionFor107)versionFor107.textContent='v1.07';
+</script>
+<script>
+/* 同じSTL読み込みで確認が二重に出ないようにする。 */
+const cadReportOriginalConfirm=window.confirm.bind(window);
+window.confirm=message=>window.__cadReportSkipLegacyStlConfirm&&String(message).startsWith('新しいSTLファイルを読み込むと')?true:cadReportOriginalConfirm(message);
+</script>
+<script>
+/* STLには提出者情報がないため、読み込み後も現在の学年・クラス・番号・氏名を保持する。 */
+const readBeforeKeepSubmitterInfo=read;
+read=async file=>{
+  const isStl=Boolean(file&&/\.stl$/i.test(file.name));
+  const submitter=isStl?{grade:info.grade,group:info.group,number:info.number,name:info.name,classNo:info.classNo}:null;
+  const result=await readBeforeKeepSubmitterInfo(file);
+  if(submitter){
+    Object.assign(info,submitter);
+    flow();
+    if(active==='person')set('person');
+  }
+  return result;
+};
+const versionFor108=document.querySelector('.title h1 .version');
+if(versionFor108)versionFor108.textContent='v1.08';
+</script>
