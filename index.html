@@ -715,3 +715,25 @@ read=async file=>{
   requestAnimationFrame(restore);setTimeout(restore,250);setTimeout(restore,900);
 };
 </script>
+<script>
+/* 学年・クラスは選択専用にし、全角を含む手入力を受け付けない。 */
+function selectOnlyOptions(selected){
+  return `<option value="">選択</option>${Array.from({length:9},(_,i)=>{const value=String(i+1);return `<option value="${value}" ${value===String(selected||'')?'selected':''}>${value}</option>`}).join('')}`;
+}
+person=()=>`<h2>提出者情報の入力</h2><label class=field>学年<select id=grade onchange="info.grade=this.value;flow()">${selectOnlyOptions(info.grade)}</select></label><label class=field>クラス<select id=group onchange="info.group=this.value;flow()">${selectOnlyOptions(info.group)}</select></label><label class=field>番号<div class=numberCombo><input id=number inputmode=numeric maxlength=2 value="${info.number}" placeholder="01〜99"><select id=numberPick>${finalOptions(1,99,true)}</select></div></label><label class=field>氏名<input id=personName value="${info.name==='ガチャポン太郎'?'':info.name}" placeholder="ガチャポン太郎"></label><button class="btn next" onclick="set('report')">次へ</button>`;
+const versionFor103=document.querySelector('.title h1 .version');
+if(versionFor103)versionFor103.textContent='v1.05';
+</script>
+<script>
+/* 終了確認と終了画面も、現在のアプリ名にそろえる。 */
+showFinalExitConfirmation=()=>{
+  const veil=document.createElement('div');
+  veil.style.cssText='position:fixed;inset:0;z-index:10001;display:grid;place-items:center;background:#17203377;padding:20px';
+  const panel=document.createElement('section');
+  panel.style.cssText='width:min(410px,100%);padding:28px;border-radius:18px;background:#fff;color:#172033;box-shadow:0 18px 50px #17203355;font:16px/1.6 system-ui,"Yu Gothic",sans-serif';
+  panel.innerHTML=`<h2 style="margin:0 0 12px;font-size:21px">本当にアプリを終了しますか？</h2><p style="margin:0 0 22px;color:#475569">${hasSavedReport?'作業を終了します。':'まだ提出用3MFを保存していません。'}</p><button type="button" data-cancel style="border:1px solid #2563eb;border-radius:10px;padding:10px 16px;background:#fff;color:#2563eb;font-weight:700;cursor:pointer">終了しない</button><button type="button" data-exit style="border:1px solid #dc2626;border-radius:10px;padding:10px 16px;background:#fff;color:#dc2626;font-weight:700;cursor:pointer;margin-left:10px">終了する</button>`;
+  panel.querySelector('[data-cancel]').onclick=()=>veil.remove();
+  panel.querySelector('[data-exit]').onclick=()=>{document.body.innerHTML='<main style="height:100vh;display:grid;place-items:center;background:#eef2f7;color:#172033;font:20px/1.7 system-ui,\'Yu Gothic\',sans-serif;text-align:center">CADレポFITを終了しました。<br><small style="font-size:14px;color:#64748b">このタブまたはウインドウを閉じてください。</small></main>';setTimeout(()=>window.close(),50)};
+  veil.append(panel);document.body.append(veil);
+};
+</script>
