@@ -1,4 +1,4 @@
-<!doctype html><html lang="ja"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>CAD課題FIT</title><script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script><script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/STLLoader.js"></script><script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script><style>
+<!doctype html><html lang="ja"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>CADレポFIT</title><script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script><script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/STLLoader.js"></script><script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script><style>
 :root{--ink:#172033;--line:#d9deea;--blue:#2563eb}*{box-sizing:border-box}html,body,#app{margin:0;width:100%;height:100%;overflow:hidden;font-family:system-ui,"Yu Gothic",sans-serif;color:var(--ink)}#app{position:relative;background:linear-gradient(#eef2f7,#dfe6f2)}#main{position:absolute;inset:0;width:100%;height:100%}.title{position:absolute;left:50%;top:15px;transform:translateX(-50%);z-index:3;text-align:center;pointer-events:none}.title h1{margin:0;font-size:26px;letter-spacing:.06em;font-weight:500;color:#334155;text-shadow:0 1px #fff}.title p{margin:3px 0;font-size:12px;color:#64748b}.circle{position:absolute;left:48%;top:50%;width:min(45vw,430px);height:min(45vw,430px);transform:translate(-50%,-50%);border:2px solid #94a3b8;border-radius:50%;box-shadow:inset 0 0 28px #fff}.guide{position:absolute;left:48%;top:50%;transform:translate(-50%,-50%);font-size:14px;font-weight:700;color:#475569;white-space:nowrap}.loaded .circle,.loaded .guide{display:none}.name{position:absolute;left:16px;bottom:15px;padding:8px 11px;background:#ffffffdb;border:1px solid var(--line);border-radius:10px;color:#475569;font-size:12px}.flow{position:absolute;right:16px;top:14px;bottom:18px;width:228px;display:flex;flex-direction:column;gap:21px}.step{position:relative;display:flex;align-items:center;gap:8px;padding:10px 9px;text-align:left;border:1px solid #d5deeb;border-radius:13px;background:#ffffffed;color:#334155;font-weight:700;font-size:13px;box-shadow:0 5px 18px #3341551c;cursor:pointer}.step:not(.save):after{content:'↓';position:absolute;left:11px;bottom:-23px;color:#94a3b8;font-size:19px}.step.active{background:#eff6ff;border-color:var(--blue);color:#1d4ed8}.step.active:before{content:'';position:absolute;left:-25px;top:50%;transform:translateY(-50%);height:14px;width:14px;border-radius:50%;background:#dc2626;box-shadow:0 0 12px #dc262699}.n{width:27px;height:27px;display:grid;place-items:center;border-radius:50%;background:#64748b;color:#fff;font-size:12px}.done .n{background:#15803d}.step small{display:block;color:#64748b;font-size:10px;font-weight:400;margin-top:2px}.save{margin-top:auto;background:#1d4ed8;color:#fff;justify-content:center}.save:disabled{opacity:.45}.drawer{display:none;position:absolute;z-index:5;right:260px;top:104px;width:min(430px,calc(100vw - 290px));max-height:calc(100vh - 135px);overflow:auto;padding:18px;border:1px solid #d5deeb;border-radius:18px;background:#fffffff5;box-shadow:0 18px 45px #3341552a}.drawer.show{display:block}.drawer h2{font-size:18px;margin:0 0 10px}.field{display:grid;gap:5px;margin:12px 0;color:#475569;font-size:12px;font-weight:700}.field input,.field textarea{font:inherit;font-weight:400;border:1px solid var(--line);border-radius:9px;padding:9px}.field textarea{height:76px;resize:vertical}.btn{border:0;border-radius:10px;padding:9px 12px;background:var(--blue);color:#fff;font-weight:700;cursor:pointer}.next{float:right}.report{padding:9px;border:1px solid var(--line);border-radius:11px;background:#f8fbff;font-size:12px}.report h3{text-align:center;font-family:serif;font-size:16px;margin:0 0 7px}.views{display:grid;grid-template-columns:repeat(3,1fr);gap:5px}.view{padding:3px;border:1px solid var(--line);border-radius:7px;background:#fff}.view canvas{display:block;width:100%;aspect-ratio:1}.view input{width:100%;padding:0;accent-color:var(--blue)}.status{clear:both;margin-top:14px;text-align:center;color:#64748b;font-size:12px}@media(max-width:680px){.flow{right:8px;width:185px}.drawer{right:201px;width:calc(100vw - 216px);min-width:250px}.step small{display:none}.circle{left:40%;width:280px;height:280px}.guide{left:40%;font-size:12px;white-space:normal;width:240px;text-align:center}.title{left:12px;transform:none}.title p{display:none}}
 </style><div id="app"><canvas id="main"></canvas><div class="circle"></div><div class="guide">作成したSTLファイルまたは3MFファイルを、画面上にドラッグ＆ドロップしてください。</div><div class="title"><h1>CAD課題FIT</h1><p>3Dモデルとレポートを、提出用3MFにまとめる</p></div><div id="name" class="name">モデルを読み込んでください</div><nav class="flow"><label class="step active" data-s="model"><span class="n">1</span><span>モデルを読み込む<small>STL または 3MF</small></span><input id="open" type="file" accept=".stl,.3mf"></label><button class="step" data-s="person"><span class="n">2</span><span>提出者を入力<small>クラス番号・氏名</small></span></button><button class="step" data-s="report"><span class="n">3</span><span>レポートを作成<small>3方向と文章を設定</small></span></button><button class="step" data-s="confirm"><span class="n">4</span><span>提出内容を確認<small>保存前の最終確認</small></span></button><button id="save" class="step save" disabled>提出用3MFを保存</button></nav><aside id="drawer" class="drawer"></aside></div><script>
 const $=x=>document.getElementById(x),app=$('app'),drawer=$('drawer'),info={classNo:'',name:'',reference:'',reflection:''};let g,mesh,base='CAD課題FIT',active='model',zooms=[1,1,1];const sc=new THREE.Scene(),r=new THREE.WebGLRenderer({canvas:$('main'),antialias:true,alpha:true}),cam=new THREE.PerspectiveCamera(35,1,.1,1000),mat=new THREE.MeshStandardMaterial({color:0x60a5fa,roughness:.35});sc.add(new THREE.HemisphereLight(0xffffff,0x71839d,2.8));let light=new THREE.DirectionalLight(0xffffff,3);light.position.set(4,6,5);sc.add(light);cam.position.set(5,-6,4);cam.up.set(0,0,1);cam.lookAt(0,0,0);function resize(){r.setSize(innerWidth,innerHeight);cam.aspect=innerWidth/innerHeight;cam.updateProjectionMatrix();r.render(sc,cam)}addEventListener('resize',resize);
@@ -445,10 +445,10 @@ make=async()=>{
 };
 </script>
 <style>
-.persp{position:relative!important}.perspectiveHint{position:absolute;z-index:6;left:50%;top:50%;transform:translate(-50%,-50%);padding:10px 18px;border:1px solid #7dd3fc;border-radius:22px;background:#e0f2fecc;color:#0369a1;box-shadow:0 4px 12px #0369a133;font:700 17px/1.25 system-ui,"Yu Gothic",sans-serif;white-space:nowrap;pointer-events:none}.perspectiveHint:after{content:'';position:absolute;left:50%;bottom:-8px;width:14px;height:14px;background:#e0f2fecc;border-right:1px solid #7dd3fc;border-bottom:1px solid #7dd3fc;transform:translateX(-50%) rotate(45deg)}@media print{.perspectiveHint{display:none!important}}
+.persp{position:relative!important}.perspectiveHint{position:absolute;z-index:6;left:50%;top:50%;transform:translate(-50%,-50%);padding:10px 18px;border:1px solid #7dd3fc;border-radius:22px;background:#e0f2fecc;color:#ca8a04;box-shadow:0 4px 12px #0369a133;font:700 17px/1.25 system-ui,"Yu Gothic",sans-serif;white-space:nowrap;pointer-events:none}.perspectiveHint:after{content:'';position:absolute;left:50%;bottom:-8px;width:14px;height:14px;background:#e0f2fecc;border-right:1px solid #7dd3fc;border-bottom:1px solid #7dd3fc;transform:translateX(-50%) rotate(45deg)}@media print{.perspectiveHint{display:none!important}}
 </style>
 <script>
-function addPerspectiveHint(){const box=drawer.querySelector('.persp');const canvas=$('v1');if(!box||!canvas||box.querySelector('.perspectiveHint'))return;const hint=document.createElement('div');hint.className='perspectiveHint';hint.textContent='大きさと向きを調整しよう！';box.append(hint);let start=null;const hide=()=>hint.remove();canvas.addEventListener('wheel',hide,{once:true,passive:true});canvas.addEventListener('pointerdown',event=>{start=[event.clientX,event.clientY]},{passive:true});canvas.addEventListener('pointermove',event=>{if(start&&Math.hypot(event.clientX-start[0],event.clientY-start[1])>4)hide()},{passive:true});canvas.addEventListener('pointerup',()=>{start=null},{passive:true})}
+function addPerspectiveHint(){const box=drawer.querySelector('.persp');const canvas=$('v1');if(!box||!canvas||box.querySelector('.perspectiveHint'))return;const hint=document.createElement('div');hint.className='perspectiveHint';hint.textContent='指で大きさと向きを調整しよう';box.append(hint);let start=null;const hide=()=>hint.remove();canvas.addEventListener('wheel',hide,{once:true,passive:true});canvas.addEventListener('pointerdown',event=>{start=[event.clientX,event.clientY]},{passive:true});canvas.addEventListener('pointermove',event=>{if(start&&Math.hypot(event.clientX-start[0],event.clientY-start[1])>4)hide()},{passive:true});canvas.addEventListener('pointerup',()=>{start=null},{passive:true})}
 const setBeforePerspectiveHint=set;set=s=>{setBeforePerspectiveHint(s);if(s==='report')setTimeout(addPerspectiveHint,100)};
 function finishCadFit(){const warning=hasSavedReport?'':'\n\nまだ提出用3MFを保存していません。';if(!window.confirm(`本当にアプリを終了しますか。${warning}`))return;document.body.innerHTML='<main style="height:100vh;display:grid;place-items:center;background:#eef2f7;color:#172033;font:20px/1.7 system-ui,\'Yu Gothic\',sans-serif;text-align:center">CAD課題FITを終了しました。<br><small style="font-size:14px;color:#64748b">このタブまたはウインドウを閉じてください。</small></main>';setTimeout(()=>window.close(),50)}
 exitFlowStep.onclick=finishCadFit;
@@ -796,7 +796,7 @@ read=async file=>{
   return result;
 };
 const versionFor108=document.querySelector('.title h1 .version');
-if(versionFor108)versionFor108.textContent='v1.14';
+if(versionFor108)versionFor108.textContent='v1.16';
 </script>
 <script>
 /* ブラウザではタブを閉じられないため、終了ステップはフローから除く。 */
@@ -832,4 +832,92 @@ function showCadRepoFitAbout(){
   veil.append(panel);document.body.append(veil);
 }
 document.querySelector('.title h1').addEventListener('click',showCadRepoFitAbout);
+</script>
+<style>
+/* 提出者情報の入力画面でも、いつでも終了できます。 */
+.drawer.person-mode{position:fixed!important}
+.person-exit{
+  position:absolute; top:16px; right:16px; z-index:4;
+  width:34px; height:34px; padding:0; border:0; border-radius:9px;
+  background:transparent; color:#64748b; font:26px/1 system-ui,sans-serif;
+  cursor:pointer;
+}
+.person-exit:hover{background:#f1f5f9;color:#172033}
+.drawer.person-mode h2{padding-right:42px}
+</style>
+<script>
+/* v1.17: 提出者情報の入力画面に終了ボタンを追加。 */
+const personBeforeExitButton=person;
+function exitFromPersonInput(){
+  window.close();
+  setTimeout(()=>location.replace('about:blank'),150);
+}
+person=()=>`<button type="button" class="person-exit" aria-label="アプリを終了する" title="アプリを終了する" onclick="exitFromPersonInput()">✗</button>${personBeforeExitButton()}`;
+const versionFor117=document.querySelector('.title h1 .version');
+if(versionFor117)versionFor117.textContent='v1.17';
+</script>
+<style>
+/* v1.21: 入力画面を閉じてモデル画面へ戻る四角い共通ボタン。 */
+.dialog-return{
+  position:fixed; z-index:1000;
+  width:36px; height:36px; padding:0;
+  border:1px solid #cbd5e1; border-radius:6px;
+  background:#fff; color:#64748b;
+  box-shadow:0 4px 14px #33415530;
+  font:25px/1 system-ui,sans-serif; cursor:pointer;
+}
+.dialog-return:hover{border-color:#94a3b8;background:#f8fafc;color:#172033}
+@media print{.dialog-return{display:none!important}}
+</style>
+<script>
+/* 提出者情報とレポートの左上枠外に、モデル画面へ戻るボタンを置く。 */
+function positionDialogReturnButtons(){
+  document.querySelectorAll('.dialog-return').forEach(button=>{
+    const target=button.dataset.returnFor==='report'?(drawer.querySelector('.a4')||drawer):drawer;
+    const rect=target.getBoundingClientRect();
+    button.style.left=Math.max(5,rect.left-button.offsetWidth-8)+'px';
+    button.style.top=Math.max(5,rect.top)+'px';
+  });
+}
+function closeInputAndReturnToModel(){set('model')}
+exitFromPersonInput=closeInputAndReturnToModel;
+
+const setBeforeDialogReturn=set;
+set=s=>{
+  document.querySelectorAll('.dialog-return').forEach(button=>button.remove());
+  setBeforeDialogReturn(s);
+  if(s!=='person'&&s!=='report')return;
+
+  let button=s==='person'?drawer.querySelector('.person-exit'):null;
+  if(!button){
+    button=document.createElement('button');
+    button.type='button';
+    button.textContent='✗';
+  }
+  button.className='dialog-return';
+  button.dataset.returnFor=s;
+  button.setAttribute('aria-label',s==='person'?'提出者情報の入力を閉じる':'レポートの入力を閉じる');
+  button.title='閉じてモデル画面へ戻る';
+  button.onclick=closeInputAndReturnToModel;
+  document.body.append(button);
+  requestAnimationFrame(positionDialogReturnButtons);
+};
+window.addEventListener('resize',positionDialogReturnButtons);
+
+const versionFor121=document.querySelector('.title h1 .version');
+if(versionFor121)versionFor121.textContent='v1.21';
+</script>
+<style>
+/* v1.22: 提出者情報の項目名と入力文字を「次へ」と同じ大きさにする。 */
+.drawer.person-mode .field,
+.drawer.person-mode .field input,
+.drawer.person-mode .field select,
+.drawer.person-mode .numberCombo select,
+.drawer.person-mode .next{
+  font-size:16px!important;
+}
+</style>
+<script>
+const versionFor122=document.querySelector('.title h1 .version');
+if(versionFor122)versionFor122.textContent='v1.22';
 </script>
