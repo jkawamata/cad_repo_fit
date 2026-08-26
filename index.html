@@ -95,7 +95,7 @@ const lastSetG=setG;setG=(x,n)=>{lastSetG(x,n);zooms[0]=1.7;zooms[2]=1.7};
 </style>
 <script>
 const isoTarget=new THREE.Vector3(0,0,0);
-views=()=>{if(active!=='report')return;for(let i=0;i<4;i++){let c=$('v'+i);if(!c)continue;let b=c.getBoundingClientRect(),w=Math.max(80,Math.round(b.width)),h=Math.max(80,Math.round(b.height));c.width=w;c.height=h;let rr=new THREE.WebGLRenderer({canvas:c,antialias:true}),cc;rr.setSize(w,h);rr.setClearColor(0xffffff,1);if(i===1){cc=new THREE.PerspectiveCamera(35,w/h,.1,100);cc.up.set(0,0,1);let d=9/(zooms[1]||1);cc.position.copy(isoTarget).add(new THREE.Vector3(Math.cos(isoAzimuth)*Math.cos(isoElevation)*d,Math.sin(isoAzimuth)*Math.cos(isoElevation)*d,Math.sin(isoElevation)*d));cc.lookAt(isoTarget)}else{let a=3.1/(zooms[0]||1),q=w/h;cc=new THREE.OrthographicCamera(-a*q,a*q,a,-a,.1,100);cc.up.set(0,0,1);if(i===0)cc.position.set(0,0,8);if(i===2)cc.position.set(0,-8,0);if(i===3)cc.position.set(8,0,0);cc.lookAt(0,0,0)}let edge;if(g&&i!==1){edge=new THREE.LineSegments(new THREE.EdgesGeometry(g,15),new THREE.LineBasicMaterial({color:0x1f2937}));sc.add(edge)}rr.render(sc,cc);if(edge){sc.remove(edge);edge.geometry.dispose();edge.material.dispose()}rr.dispose();if(i===1&&!c._perspectiveWired){c._perspectiveWired=true;let points=new Map(),last=null;c.addEventListener('contextmenu',e=>e.preventDefault());c.addEventListener('wheel',e=>{e.preventDefault();zooms[1]=Math.max(.1,Math.min(12,zooms[1]*(e.deltaY>0?.88:1.14)));if($('isoZoom'))$('isoZoom').value=Math.min(8,zooms[1]);views()},{passive:false});c.addEventListener('pointerdown',e=>{points.set(e.pointerId,[e.clientX,e.clientY]);last=[e.clientX,e.clientY,e.button];c.setPointerCapture(e.pointerId)});c.addEventListener('pointermove',e=>{if(!points.has(e.pointerId))return;points.set(e.pointerId,[e.clientX,e.clientY]);let p=[...points.values()];if(p.length===2){let dx=p[0][0]-p[1][0],dy=p[0][1]-p[1][1],dist=Math.hypot(dx,dy);let prev=c._pinch||dist;zooms[1]=Math.max(.1,Math.min(12,zooms[1]*dist/prev));c._pinch=dist;if($('isoZoom'))$('isoZoom').value=Math.min(8,zooms[1])}else if(last){let dx=e.clientX-last[0],dy=e.clientY-last[1];if(last[2]===2){isoTarget.x-=dx*.012;isoTarget.z+=dy*.012}else{isoAzimuth+=dx*.012;isoElevation=Math.max(-1.45,Math.min(1.45,isoElevation-dy*.012))}last=[e.clientX,e.clientY,last[2]]}views()});let up=e=>{points.delete(e.pointerId);c._pinch=null;if(!points.size)last=null};c.addEventListener('pointerup',up);c.addEventListener('pointercancel',up)}}};
+views=()=>{if(active!=='report')return;for(let i=0;i<4;i++){let c=$('v'+i);if(!c)continue;let b=c.getBoundingClientRect(),w=Math.max(80,Math.round(b.width)),h=Math.max(80,Math.round(b.height));c.width=w;c.height=h;let rr=new THREE.WebGLRenderer({canvas:c,antialias:true}),cc;rr.setSize(w,h);rr.setClearColor(0xffffff,1);if(i===1){cc=new THREE.PerspectiveCamera(35,w/h,.1,100);cc.up.set(0,0,1);let d=9/(zooms[1]||1);cc.position.copy(isoTarget).add(new THREE.Vector3(Math.cos(isoAzimuth)*Math.cos(isoElevation)*d,Math.sin(isoAzimuth)*Math.cos(isoElevation)*d,Math.sin(isoElevation)*d));cc.lookAt(isoTarget)}else{let a=3.1/(zooms[0]||1),q=w/h;cc=new THREE.OrthographicCamera(-a*q,a*q,a,-a,.1,100);cc.up.set(0,0,1);if(i===0)cc.position.set(0,0,8);if(i===2)cc.position.set(0,-8,0);if(i===3)cc.position.set(8,0,0);cc.lookAt(0,0,0)}let edge;if(g&&i!==1){edge=new THREE.LineSegments(new THREE.EdgesGeometry(g,15),new THREE.LineBasicMaterial({color:0x1f2937}));sc.add(edge)}rr.render(sc,cc);if(edge){sc.remove(edge);edge.geometry.dispose();edge.material.dispose()}rr.dispose();if(i===1&&!c._perspectiveWired){c._perspectiveWired=true;let points=new Map(),last=null;c.addEventListener('contextmenu',e=>e.preventDefault());c.addEventListener('wheel',e=>{e.preventDefault();zooms[1]=Math.max(.1,Math.min(12,zooms[1]*(e.deltaY>0?.88:1.14)));if($('isoZoom'))$('isoZoom').value=Math.min(8,zooms[1]);views()},{passive:false});c.addEventListener('pointerdown',e=>{points.set(e.pointerId,[e.clientX,e.clientY]);last=[e.clientX,e.clientY,e.button];c.setPointerCapture(e.pointerId)});c.addEventListener('pointermove',e=>{if(!points.has(e.pointerId))return;points.set(e.pointerId,[e.clientX,e.clientY]);let p=[...points.values()];if(p.length===2){let dx=p[0][0]-p[1][0],dy=p[0][1]-p[1][1],dist=Math.hypot(dx,dy);let prev=c._pinch||dist;zooms[1]=Math.max(.1,Math.min(12,zooms[1]*dist/prev));c._pinch=dist;if($('isoZoom'))$('isoZoom').value=Math.min(8,zooms[1])}else if(last){let dx=e.clientX-last[0],dy=e.clientY-last[1];if(last[2]===2){isoTarget.x-=dx*.012;isoTarget.z+=dy*.012}else{isoAzimuth-=dx*.012;isoElevation=Math.max(-1.45,Math.min(1.45,isoElevation+dy*.012))}last=[e.clientX,e.clientY,last[2]]}views()});let up=e=>{points.delete(e.pointerId);c._pinch=null;if(!points.size)last=null};c.addEventListener('pointerup',up);c.addEventListener('pointercancel',up)}}};
 function autoFitOrtho(){if(!g||app.dataset.orthoFit)return;let s=g.boundingBox.getSize(new THREE.Vector3()),req=0;for(let id of ['v0','v2','v3']){let c=$(id);if(!c)continue;let q=c.clientWidth/c.clientHeight,need=id==='v0'?Math.max(s.y/2,s.x/(2*q)):id==='v2'?Math.max(s.z/2,s.x/(2*q)):Math.max(s.z/2,s.y/(2*q));req=Math.max(req,need)}if(req){zooms[0]=zooms[2]=Math.max(.15,3.1/req*.94);app.dataset.orthoFit='1';if($('orthoZoom'))$('orthoZoom').value=Math.min(8,zooms[0]);views()}}
 const previousSet=set;set=s=>{previousSet(s);if(s==='report')setTimeout(autoFitOrtho,80)};
 </script>
@@ -983,6 +983,7 @@ function showExternalInfoDialog(){
   panel.setAttribute('role','dialog');
   panel.setAttribute('aria-modal','true');
   panel.setAttribute('aria-labelledby','external-info-title');
+  panel.tabIndex=-1;
   panel.innerHTML=`
     <h2 id="external-info-title">外部通信と利用ライブラリについて</h2>
     <div class="external-info-summary">
@@ -1036,7 +1037,9 @@ function showExternalInfoDialog(){
   veil.append(panel);
   document.body.append(veil);
   document.addEventListener('keydown',onKeyDown);
-  panel.querySelector('.external-info-close').focus();
+  panel.scrollTop=0;
+  panel.focus({preventScroll:true});
+  requestAnimationFrame(()=>{panel.scrollTop=0});
 }
 
 const externalInfoButton=document.createElement('button');
@@ -1054,4 +1057,14 @@ if(versionFor124)versionFor124.textContent='v1.24';
 /* v1.25: CADレポFIT本体のCC BY 4.0ライセンス表示を追加。 */
 const versionFor125=document.querySelector('.title h1 .version');
 if(versionFor125)versionFor125.textContent='v1.25';
+</script>
+<script>
+/* v1.26: 外部通信・ライセンス画面を常に先頭から表示。 */
+const versionFor126=document.querySelector('.title h1 .version');
+if(versionFor126)versionFor126.textContent='v1.26';
+</script>
+<script>
+/* v1.27: パースを立体をつまむ感覚で回転できる方向へ変更。 */
+const versionFor127=document.querySelector('.title h1 .version');
+if(versionFor127)versionFor127.textContent='v1.27';
 </script>
