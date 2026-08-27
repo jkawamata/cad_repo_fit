@@ -1,3 +1,6 @@
+Warning: truncated output (original token count: 10862)
+Total output lines: 100
+
 <!doctype html><html lang="ja"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>CADレポFIT</title><script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script><script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/STLLoader.js"></script><script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script><style>
 :root{--ink:#172033;--line:#d9deea;--blue:#2563eb}*{box-sizing:border-box}html,body,#app{margin:0;width:100%;height:100%;overflow:hidden;font-family:system-ui,"Yu Gothic",sans-serif;color:var(--ink)}#app{position:relative;background:linear-gradient(#eef2f7,#dfe6f2)}#main{position:absolute;inset:0;width:100%;height:100%}.title{position:absolute;left:50%;top:15px;transform:translateX(-50%);z-index:3;text-align:center;pointer-events:none}.title h1{margin:0;font-size:26px;letter-spacing:.06em;font-weight:500;color:#334155;text-shadow:0 1px #fff}.title p{margin:3px 0;font-size:12px;color:#64748b}.circle{position:absolute;left:48%;top:50%;width:min(45vw,430px);height:min(45vw,430px);transform:translate(-50%,-50%);border:2px solid #94a3b8;border-radius:50%;box-shadow:inset 0 0 28px #fff}.guide{position:absolute;left:48%;top:50%;transform:translate(-50%,-50%);font-size:14px;font-weight:700;color:#475569;white-space:nowrap}.loaded .circle,.loaded .guide{display:none}.name{position:absolute;left:16px;bottom:15px;padding:8px 11px;background:#ffffffdb;border:1px solid var(--line);border-radius:10px;color:#475569;font-size:12px}.flow{position:absolute;right:16px;top:14px;bottom:18px;width:228px;display:flex;flex-direction:column;gap:21px}.step{position:relative;display:flex;align-items:center;gap:8px;padding:10px 9px;text-align:left;border:1px solid #d5deeb;border-radius:13px;background:#ffffffed;color:#334155;font-weight:700;font-size:13px;box-shadow:0 5px 18px #3341551c;cursor:pointer}.step:not(.save):after{content:'↓';position:absolute;left:11px;bottom:-23px;color:#94a3b8;font-size:19px}.step.active{background:#eff6ff;border-color:var(--blue);color:#1d4ed8}.step.active:before{content:'';position:absolute;left:-25px;top:50%;transform:translateY(-50%);height:14px;width:14px;border-radius:50%;background:#dc2626;box-shadow:0 0 12px #dc262699}.n{width:27px;height:27px;display:grid;place-items:center;border-radius:50%;background:#64748b;color:#fff;font-size:12px}.done .n{background:#15803d}.step small{display:block;color:#64748b;font-size:10px;font-weight:400;margin-top:2px}.save{margin-top:auto;background:#1d4ed8;color:#fff;justify-content:center}.save:disabled{opacity:.45}.drawer{display:none;position:absolute;z-index:5;right:260px;top:104px;width:min(430px,calc(100vw - 290px));max-height:calc(100vh - 135px);overflow:auto;padding:18px;border:1px solid #d5deeb;border-radius:18px;background:#fffffff5;box-shadow:0 18px 45px #3341552a}.drawer.show{display:block}.drawer h2{font-size:18px;margin:0 0 10px}.field{display:grid;gap:5px;margin:12px 0;color:#475569;font-size:12px;font-weight:700}.field input,.field textarea{font:inherit;font-weight:400;border:1px solid var(--line);border-radius:9px;padding:9px}.field textarea{height:76px;resize:vertical}.btn{border:0;border-radius:10px;padding:9px 12px;background:var(--blue);color:#fff;font-weight:700;cursor:pointer}.next{float:right}.report{padding:9px;border:1px solid var(--line);border-radius:11px;background:#f8fbff;font-size:12px}.report h3{text-align:center;font-family:serif;font-size:16px;margin:0 0 7px}.views{display:grid;grid-template-columns:repeat(3,1fr);gap:5px}.view{padding:3px;border:1px solid var(--line);border-radius:7px;background:#fff}.view canvas{display:block;width:100%;aspect-ratio:1}.view input{width:100%;padding:0;accent-color:var(--blue)}.status{clear:both;margin-top:14px;text-align:center;color:#64748b;font-size:12px}@media(max-width:680px){.flow{right:8px;width:185px}.drawer{right:201px;width:calc(100vw - 216px);min-width:250px}.step small{display:none}.circle{left:40%;width:280px;height:280px}.guide{left:40%;font-size:12px;white-space:normal;width:240px;text-align:center}.title{left:12px;transform:none}.title p{display:none}}
 </style><div id="app"><canvas id="main"></canvas><div class="circle"></div><div class="guide">作成したSTLファイルまたは3MFファイルを、画面上にドラッグ＆ドロップしてください。</div><div class="title"><h1>CAD課題FIT</h1><p>3Dモデルとレポートを、提出用3MFにまとめる</p></div><div id="name" class="name">モデルを読み込んでください</div><nav class="flow"><label class="step active" data-s="model"><span class="n">1</span><span>モデルを読み込む<small>STL または 3MF</small></span><input id="open" type="file" accept=".stl,.3mf"></label><button class="step" data-s="person"><span class="n">2</span><span>提出者を入力<small>クラス番号・氏名</small></span></button><button class="step" data-s="report"><span class="n">3</span><span>レポートを作成<small>3方向と文章を設定</small></span></button><button class="step" data-s="confirm"><span class="n">4</span><span>提出内容を確認<small>保存前の最終確認</small></span></button><button id="save" class="step save" disabled>提出用3MFを保存</button></nav><aside id="drawer" class="drawer"></aside></div><script>
@@ -41,18 +44,7 @@ views=()=>{if(active!=='report')return;for(let i=0;i<4;i++){let c=$('v'+i);if(!c
 set=s=>{active=s;document.querySelectorAll('[data-s]').forEach(x=>x.classList.toggle('active',x.dataset.s===s));drawer.classList.toggle('show',s!=='model');drawer.classList.toggle('report-mode',s==='report');drawer.innerHTML=s==='person'?person():s==='report'?report():s==='confirm'?confirm():'';if(s==='person'){['grade','group','number'].forEach(k=>$(k).oninput=e=>{info[k]=e.target.value.replace(/[^0-9]/g,'');flow()});personName.oninput=e=>{info.name=e.target.value;flow()}}if(s==='report'){['reference','reflection'].forEach(k=>$(k).oninput=e=>{info[k]=e.target.value;flow();set('report')});setTimeout(views)}};
 </script>
 <script>
-set=s=>{active=s;document.querySelectorAll('[data-s]').forEach(x=>x.classList.toggle('active',x.dataset.s===s));drawer.classList.toggle('show',s!=='model');drawer.classList.toggle('report-mode',s==='report');drawer.innerHTML=s==='person'?person():s==='report'?report():s==='confirm'?confirm():'';if(s==='person'){['grade','group','number'].forEach(k=>$(k).oninput=e=>{info[k]=e.target.value.replace(/[^0-9]/g,'');flow()});personName.oninput=e=>{info.name=e.target.value;flow()}}if(s==='report'){['reference','reflection'].forEach(k=>$(k).oninput=e=>{info[k]=e.target.value;flow();drawer.querySelectorAll('.actions button').forEach(b=>b.disabled=!good())});setTimeout(views)}};
-</script>
-<script>
-document.querySelector('[data-s="person"] span:nth-child(2)').firstChild.data='提出者情報の入力';
-const options=(from,to)=>Array.from({length:to-from+1},(_,i)=>`<option value="${String(i+from).padStart(2,'0')}"></option>`).join('');
-good=()=>!!(g&&/^[1-9]$/.test(info.grade)&&/^[1-9]$/.test(info.group)&&/^(?:0[1-9]|[1-9][0-9])$/.test(info.number)&&info.name.trim()&&info.name.trim()!=='ガチャポン太郎'&&info.reference.trim()&&info.reflection.trim());
-flow=()=>{info.classNo=info.grade&&info.group&&info.number?`${info.grade}年${info.group}組${info.number}番`:'';for(let x of document.querySelectorAll('[data-s]'))x.classList.toggle('done',x.dataset.s==='model'?!!g:x.dataset.s==='person'?!!(info.grade&&info.group&&info.number&&info.name.trim()&&info.name.trim()!=='ガチャポン太郎'):x.dataset.s==='report'?!!(info.reference&&info.reflection):false)};
-person=()=>`<h2>提出者情報の入力</h2><label class=field>学年<input id=grade inputmode=numeric pattern="[1-9]" maxlength=1 list=grades value="${info.grade}" placeholder="1〜9"></label><label class=field>クラス<input id=group inputmode=numeric pattern="[1-9]" maxlength=1 list=groups value="${info.group}" placeholder="1〜9"></label><label class=field>番号<input id=number inputmode=numeric pattern="[0-9]{2}" maxlength=2 list=numbers value="${info.number}" placeholder="01〜99"></label><datalist id=grades>${options(1,9).replaceAll('0','')}</datalist><datalist id=groups>${options(1,9).replaceAll('0','')}</datalist><datalist id=numbers>${options(1,99)}</datalist><label class=field>氏名<input id=personName value="${info.name||'ガチャポン太郎'}"></label><button class="btn next" onclick="set('report')">次へ</button><div class=status>学年・クラス・番号は候補から選ぶか、半角数字で入力してください。</div>`;
-</script>
-<script>
-flow=()=>{if(/^\d$/.test(info.number))info.number=info.number.padStart(2,'0');info.classNo=info.grade&&info.group&&info.number?`${info.grade}年${info.group}組${info.number}番`:'';for(let x of document.querySelectorAll('[data-s]'))x.classList.toggle('done',x.dataset.s==='model'?!!g:x.dataset.s==='person'?!!(info.grade&&info.group&&info.number&&info.name.trim()&&info.name.trim()!=='ガチャポン太郎'):x.dataset.s==='report'?!!(info.reference&&info.reflection):false)};
-report=()=>`<article class=a4><header class=a4head><h2>CAD課題報告書</h2><div class=a4date>作成日時：${now()}</div></header><div class=reportControls>正投影図の拡大率 <input id=orthoZoom type=range min=.65 max=1.5 step=.01 value=${zooms[0]||1}>　等角図の拡大率 <input id=isoZoom type=range min=.65 max=1.5 step=.01 value=${zooms[1]||1}></div><div class=views><div class=view><canvas id=v0></canvas><small>平面図</small></div><div class=view><canvas id=v1></canvas><small>等角図</small></div><div class=view><canvas id=v2></canvas><small>正面図</small></div><div class=view><canvas id=v3></canvas><small>右側面図</small></div></div><label class=field>参考にしたもの<textarea id=reference rows=2>${info.reference}</textarea></label><label class=field>気づいたこと・考えたこと<textarea id=reflection rows=5>${info.reflection}</textarea></label><footer class=reportFooter>${info.grade||'　'}年　${info.group||'　'}組　${info.number||'　'}番　${info.name||'　'}</footer><div class=actions><button class=btn onclick="window.print()" ${good()?'':'disabled'}>印刷用PDFを出力</button><button class=btn onclick="make()" ${good()?'':'disabled'}>提出用3MFを保存</button></div></article>`;
+set=s=>{active=s;document.querySelectorAll('[data-s]').forEach(x=>x.classList.toggle('active',x.dataset.s===s));drawer.classList.toggle('show',s!=='model');drawer.classList.toggle('report-…862 tokens truncated…lass=view><canvas id=v3></canvas><small>右側面図</small></div></div><label class=field>参考にしたもの<textarea id=reference rows=2>${info.reference}</textarea></label><label class=field>気づいたこと・考えたこと<textarea id=reflection rows=5>${info.reflection}</textarea></label><footer class=reportFooter>${info.grade||'　'}年　${info.group||'　'}組　${info.number||'　'}番　${info.name||'　'}</footer><div class=actions><button class=btn onclick="window.print()" ${good()?'':'disabled'}>印刷用PDFを出力</button><button class=btn onclick="make()" ${good()?'':'disabled'}>提出用3MFを保存</button></div></article>`;
 views=()=>{if(active!=='report')return;for(let i=0;i<4;i++){let c=$('v'+i);if(!c)continue;c.width=260;c.height=190;let rr=new THREE.WebGLRenderer({canvas:c,antialias:true}),cc;rr.setSize(260,190);rr.setClearColor(0xffffff,1);if(i===1){cc=new THREE.PerspectiveCamera(35,260/190,.1,100);cc.up.set(0,0,1);cc.position.set(6,-6,5).multiplyScalar(1/(zooms[1]||1))}else{let a=3.1/(zooms[0]||1),ratio=260/190;cc=new THREE.OrthographicCamera(-a*ratio,a*ratio,a,-a,.1,100);cc.up.set(0,0,1);[[0,0,8],[0,0,0],[0,-8,0],[8,0,0]][i].forEach((v,j)=>cc.position.setComponent(j,v));if(i===0)cc.position.set(0,0,8);if(i===2)cc.position.set(0,-8,0);if(i===3)cc.position.set(8,0,0)}cc.lookAt(0,0,0);rr.render(sc,cc);rr.dispose()}};
 set=s=>{active=s;document.querySelectorAll('[data-s]').forEach(x=>x.classList.toggle('active',x.dataset.s===s));drawer.classList.toggle('show',s!=='model');drawer.classList.toggle('report-mode',s==='report');drawer.innerHTML=s==='person'?person():s==='report'?report():s==='confirm'?confirm():'';if(s==='person'){['grade','group','number'].forEach(k=>$(k).oninput=e=>{info[k]=e.target.value.replace(/[^0-9]/g,'');flow()});number.onblur=()=>{flow();number.value=info.number};personName.oninput=e=>{info.name=e.target.value;flow()}}if(s==='report'){['reference','reflection'].forEach(k=>$(k).oninput=e=>{info[k]=e.target.value;flow();drawer.querySelectorAll('.actions button').forEach(b=>b.disabled=!good())});orthoZoom.oninput=e=>{zooms[0]=+e.target.value;zooms[2]=zooms[0];views()};isoZoom.oninput=e=>{zooms[1]=+e.target.value;views()};setTimeout(views)}};
 </script>
@@ -956,6 +948,25 @@ if(versionFor123)versionFor123.textContent='v1.23';
 .external-info-app-license{
   margin-top:22px;padding-top:4px;border-top:1px solid #d9deea;
 }
+.external-info-download{
+  display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;
+  gap:12px;margin-top:18px;padding:12px 14px;
+  border:1px solid #9ebfe5;border-radius:10px;background:#eef7ff;
+}
+.external-info-download-button{
+  display:inline-flex;align-items:center;justify-content:center;
+  padding:9px 12px;border:1px solid #0848ad;border-radius:8px;
+  background:#0b57d0;color:#fff;font-size:13px;font-weight:800;
+  line-height:1.4;white-space:nowrap;box-shadow:0 2px 5px #0b57d038;
+  cursor:pointer;
+}
+.external-info-download-button:hover,
+.external-info-download-button:focus-visible{
+  background:#0848ad;outline:3px solid #0b57d040;outline-offset:2px;
+}
+.external-info-download-text{
+  margin:0!important;color:#23364d;font-size:12.5px;line-height:1.65;
+}
 .external-info-close-row{text-align:right;margin-top:22px}
 .external-info-close{
   border:0;border-radius:9px;padding:9px 20px;background:#2563eb;
@@ -964,6 +975,7 @@ if(versionFor123)versionFor123.textContent='v1.23';
 @media(max-width:680px){
   .external-info-button{right:8px;bottom:8px;padding:7px 9px;font-size:11px}
   .external-info-panel{padding:22px 18px}
+  .external-info-download{grid-template-columns:1fr;align-items:start}
 }
 @media print{
   .external-info-button,.external-info-veil{display:none!important}
@@ -1024,6 +1036,11 @@ function showExternalInfoDialog(){
       <p>ライセンスは無保証であり、第三者が持つ著作権・商標権・特許権・肖像権など、すべての権利を許諾するものではありません。</p>
     </section>
 
+    <div class="external-info-download">
+      <button type="button" class="external-info-download-button" aria-describedby="external-info-download-text">端末にダウンロード</button>
+      <p id="external-info-download-text" class="external-info-download-text">このアプリはHTMLファイル１個だけで動作します。端末にダウンロードすれば、ご自身の端末で自由に改変することができます。ぜひバイブコーディング等で改変してみてください。</p>
+    </div>
+
     <div class="external-info-close-row"><button type="button" class="external-info-close">閉じる</button></div>`;
 
   const close=()=>{
@@ -1033,6 +1050,7 @@ function showExternalInfoDialog(){
   };
   const onKeyDown=event=>{if(event.key==='Escape')close()};
   panel.querySelector('.external-info-close').onclick=close;
+  panel.querySelector('.external-info-download-button').onclick=downloadCadRepoFitHtml;
   veil.onclick=event=>{if(event.target===veil)close()};
   veil.append(panel);
   document.body.append(veil);
@@ -1067,4 +1085,65 @@ if(versionFor126)versionFor126.textContent='v1.26';
 /* v1.27: パースを立体をつまむ感覚で回転できる方向へ変更。 */
 const versionFor127=document.querySelector('.title h1 .version');
 if(versionFor127)versionFor127.textContent='v1.27';
+</script>
+<script>
+/* v1.28: 外部通信・ライセンス画面から、現在の単一HTML版を端末へ保存できるようにする。 */
+function createDownloadableCadRepoFitHtml(){
+  const root=document.documentElement.cloneNode(true);
+
+  /* 実行時に追加された要素は、保存版の起動時に各スクリプトが再生成する。 */
+  root.querySelectorAll('.external-info-veil,.external-info-button,.dialog-return,#reportOperationPortal').forEach(node=>node.remove());
+  const exitStep=root.querySelector('.flow .step.exit');
+  if(exitStep){
+    const arrow=exitStep.previousElementSibling;
+    if(arrow?.tagName==='DIV'&&arrow.textContent.trim()==='↓')arrow.remove();
+    exitStep.remove();
+  }
+  root.querySelector('.title h1 .version')?.remove();
+
+  const runtimeStyleStarts=[
+    '.step[data-s="confirm"]:after,.step.exit:after',
+    '@media screen{.drawer.report-mode{height:calc(100vh - 108px)',
+    '@media screen{.drawer.report-mode{top:90px',
+    '@media screen{#reportOperationPortal',
+    '@media screen{#app.report-open>#main',
+    '@media screen{.drawer.report-mode{background:transparent'
+  ];
+  root.querySelectorAll('head style').forEach(style=>{
+    if(runtimeStyleStarts.some(start=>style.textContent.startsWith(start)))style.remove();
+  });
+
+  const savedApp=root.querySelector('#app');
+  if(savedApp){
+    savedApp.classList.remove('loaded','report-open');
+    savedApp.removeAttribute('style');
+  }
+  const savedDrawer=root.querySelector('#drawer');
+  if(savedDrawer){savedDrawer.className='drawer';savedDrawer.innerHTML=''}
+  const savedName=root.querySelector('#name');
+  if(savedName)savedName.textContent='モデルを読み込んでください';
+  root.querySelectorAll('.flow [data-s]').forEach(step=>{
+    step.classList.remove('active','done');
+    if(step.dataset.s==='model')step.classList.add('active');
+  });
+  const savedSave=root.querySelector('#save');
+  if(savedSave)savedSave.disabled=true;
+
+  return '<!doctype html>\n'+root.outerHTML;
+}
+const downloadableCadRepoFitHtml=createDownloadableCadRepoFitHtml();
+function downloadCadRepoFitHtml(){
+  const blob=new Blob([downloadableCadRepoFitHtml],{type:'text/html;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  const link=document.createElement('a');
+  link.href=url;
+  link.download='cad_repo_fit_128.html';
+  link.style.display='none';
+  document.body.append(link);
+  link.click();
+  link.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+const versionFor128=document.querySelector('.title h1 .version');
+if(versionFor128)versionFor128.textContent='v1.28';
 </script>
