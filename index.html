@@ -1094,8 +1094,132 @@ if(versionFor126)versionFor126.textContent='v1.26';
 const versionFor127=document.querySelector('.title h1 .version');
 if(versionFor127)versionFor127.textContent='v1.27';
 </script>
+<style>
+/* v1.30: 考察欄を正面図・右側面図の見出し直前まで広げ、欄内はスクロールさせない。 */
+.referenceBox textarea,.reflectionBox textarea{overflow:hidden!important;resize:none!important}
+@media screen{
+  .reflectionBox{align-self:start!important;height:calc(100% - 22px)!important}
+  #reference,#reflection{font-size:var(--report-screen-font-size,13px)!important}
+}
+@media print{
+  .reflectionBox{align-self:start!important;height:calc(100% - 6mm)!important}
+  #reference,#reflection{font-size:var(--report-print-font-size,8.5pt)!important}
+}
+</style>
 <script>
 /* v1.28: 外部通信・ライセンス画面から、現在の単一HTML版を端末へ保存できるようにする。 */
+/* v1.29: 作業途中で3MFを読み込んだ場合は、読込成功後にレポート作成画面を直接開く。 */
+/* v1.30: 考察欄を拡大し、入力文字が欄を超える場合は自動的に縮小する。 */
+/* v1.31: 参考欄にも自動縮小を適用し、A4印刷用の欄寸法でも文字サイズを別途計算する。 */
+const readBeforeOpenMidway3mfReport=read;
+read=async file=>{
+  const hadModel=Boolean(g);
+  const previousGeometry=g;
+  const result=await readBeforeOpenMidway3mfReport(file);
+  if(hadModel&&file&&/\.3mf$/i.test(file.name)&&g&&g!==previousGeometry){
+    const loadedGeometry=g;
+    setTimeout(()=>{if(g===loadedGeometry)set('report')},1000);
+  }
+  return result;
+};
+const reportTextFitSpecs={
+  reference:{printWidthMm:50,printHeightMm:16},
+  reflection:{printWidthMm:66,printHeightMm:100}
+};
+function findFittingFontSize(target,maximum){
+  const fits=()=>target.scrollHeight<=target.clientHeight+1&&target.scrollWidth<=target.clientWidth+1;
+  const applyFontSize=size=>target.style.setProperty('font-size',`${size.toFixed(2)}px`,'important');
+  let minimum=4;
+  let best=minimum;
+
+  applyFontSize(maximum);
+  if(fits()){
+    best=maximum;
+  }else{
+    applyFontSize(minimum);
+    while(minimum>1.5&&!fits()){
+      minimum-=.5;
+      applyFontSize(minimum);
+    }
+    best=minimum;
+    if(fits()){
+      let lower=minimum,upper=maximum;
+      for(let i=0;i<10;i++){
+        const middle=(lower+upper)/2;
+        applyFontSize(middle);
+        if(fits()){best=middle;lower=middle}else upper=middle;
+      }
+    }
+  }
+  applyFontSize(best);
+  return best;
+}
+function createPrintTextMeasure(area,spec){
+  const measure=document.createElement('div');
+  measure.textContent=area.value||area.placeholder||'';
+  measure.style.cssText=`position:fixed;left:-10000px;top:0;visibility:hidden;box-sizing:border-box;width:${spec.printWidthMm}mm;height:${spec.printHeightMm}mm;padding:1.2mm;border:1px solid transparent;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;overflow:hidden;font-family:system-ui,"Yu Gothic",sans-serif;line-height:1.45`;
+  document.body.append(measure);
+  return measure;
+}
+function fitReportTextArea(id,{fitScreen=true,fitPrint=true}={}){
+  const area=$(id),spec=reportTextFitSpecs[id];
+  if(!area||!spec||area.clientHeight<=0)return;
+
+  area.style.setProperty('overflow','hidden','important');
+  area.style.setProperty('resize','none','important');
+  area.style.setProperty('line-height','1.45','important');
+  if(fitScreen){
+    const screenSize=findFittingFontSize(area,13);
+    area.style.removeProperty('font-size');
+    area.style.setProperty('--report-screen-font-size',`${screenSize.toFixed(2)}px`);
+    area.dataset.autoFontSize=screenSize.toFixed(2);
+  }
+  if(fitPrint){
+    const printMeasure=createPrintTextMeasure(area,spec);
+    const printSize=findFittingFontSize(printMeasure,11.33);
+    printMeasure.remove();
+    area.style.setProperty('--report-print-font-size',`${printSize.toFixed(2)}px`);
+    area.dataset.printAutoFontSize=printSize.toFixed(2);
+  }
+  area.scrollTop=0;
+  area.scrollLeft=0;
+}
+function fitReportTextareas(){
+  Object.keys(reportTextFitSpecs).forEach(fitReportTextArea);
+}
+function fitPrintReportTextareas(){
+  Object.keys(reportTextFitSpecs).forEach(id=>fitReportTextArea(id,{fitScreen:false,fitPrint:true}));
+}
+function queueReportTextFit(){
+  requestAnimationFrame(fitReportTextareas);
+}
+const setBeforeReflectionTextFit=set;
+set=s=>{
+  const result=setBeforeReflectionTextFit(s);
+  if(s==='report'){
+    queueReportTextFit();
+    setTimeout(fitReportTextareas,120);
+  }
+  return result;
+};
+document.addEventListener('input',event=>{
+  if(event.target?.id==='reference'||event.target?.id==='reflection')queueReportTextFit();
+},true);
+window.addEventListener('resize',()=>{
+  if(active==='report')queueReportTextFit();
+});
+const printBeforeReportTextFit=window.print;
+window.print=async()=>{
+  if(active==='report')fitReportTextareas();
+  return printBeforeReportTextFit();
+};
+window.addEventListener('beforeprint',fitPrintReportTextareas);
+window.addEventListener('afterprint',()=>{
+  if(active!=='report')return;
+  queueReportTextFit();
+  setTimeout(fitReportTextareas,80);
+  setTimeout(fitReportTextareas,240);
+});
 function createDownloadableCadRepoFitHtml(){
   const root=document.documentElement.cloneNode(true);
 
@@ -1145,13 +1269,13 @@ function downloadCadRepoFitHtml(){
   const url=URL.createObjectURL(blob);
   const link=document.createElement('a');
   link.href=url;
-  link.download='cad_repo_fit_128.html';
+  link.download='cad_repo_fit_131.html';
   link.style.display='none';
   document.body.append(link);
   link.click();
   link.remove();
   setTimeout(()=>URL.revokeObjectURL(url),1000);
 }
-const versionFor128=document.querySelector('.title h1 .version');
-if(versionFor128)versionFor128.textContent='v1.28';
+const versionFor131=document.querySelector('.title h1 .version');
+if(versionFor131)versionFor131.textContent='v1.31';
 </script>
